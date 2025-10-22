@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }} - Pastelería</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Playfair+Display:wght@700&display=swap');
+
+        :root {
+            --color-principal: #FF9AA2; /* Rosa pastel */
+            --color-acento: #FFDAC1;   /* Melocotón */
+            --color-fondo: #FDF4F5;    /* Crema muy claro */
+            --color-texto: #333333;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--color-fondo);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .login-container { /* Renombrado para consistencia, aunque maneja registro */
+            background-color: white;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+            border: 2px solid var(--color-acento);
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--color-principal);
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-shadow: 1px 1px 1px var(--color-acento);
+        }
+
+        form table {
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+
+        form table td {
+            padding: 10px 0;
+            text-align: left;
+        }
+
+        form table label {
+            color: var(--color-texto);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Estilo para los inputs de registro (incluyendo la confirmación de contraseña) */
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--color-acento);
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--color-principal);
+            outline: none;
+        }
+
+        input[type="submit"] {
+            background-color: var(--color-principal);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #E0828A;
+            transform: translateY(-1px);
+        }
+
+        .mensaje-exito {
+            color: green;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Registro de Nuevo Usuario</h1>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <table>
+                {{ form.as_table }}
+            </table>
+
+            <input type="submit" value="Crear Cuenta">
+        </form>
+
+        <p class="mensaje-exito">
+            <a href="{% url 'login' %}" style="color: var(--color-texto); text-decoration: none;">
+                Volver al inicio de sesión
+            </a>
+        </p>
+
+    </div>
+</body>
+</html>

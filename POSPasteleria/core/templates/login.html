@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Pasteleria - Chispitas de arcoiris</title>
+
+    <style>
+        /* ... TU CSS EXISTENTE AQUÍ ... */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Playfair+Display:wght@700&display=swap');
+
+        :root {
+            --color-principal: #FF9AA2;
+            --color-acento: #FFDAC1;
+            --color-fondo: #FDF4F5;
+            --color-texto: #333333;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--color-fondo);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .login-container {
+            background-color: white;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            width: 350px;
+            text-align: center;
+            border: 2px solid var(--color-acento);
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            color: var(--color-principal);
+            margin-bottom: 30px;
+            font-size: 2.2em;
+            text-shadow: 1px 1px 1px var(--color-acento);
+        }
+
+        form table {
+            width: 100%;
+            margin-bottom: 20px;
+            border-collapse: collapse;
+        }
+
+        form table td {
+            padding: 10px 0;
+            text-align: left;
+        }
+
+        form table label {
+            color: var(--color-texto);
+            font-weight: 600;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--color-acento);
+            border-radius: 8px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--color-principal);
+            outline: none;
+        }
+
+        input[type="submit"] {
+            background-color: var(--color-principal);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #E0828A;
+            transform: translateY(-1px);
+        }
+
+        p.error {
+            color: white;
+            background-color: #CC0000;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Chispitas de arcoiris</h1>
+
+        {% if form.errors %}
+            <p class="error">Usuario o contraseña incorrectos.</p>
+        {% endif %}
+
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+
+            <table>
+                {{ form.as_table }}
+            </table>
+
+            <input type="submit" value="Acceder">
+            <input type="hidden" name="next" value="{{ next }}">
+        </form>
+        <p style="margin-top: 20px;">
+            ¿Eres nuevo ? <a href="{% url 'registro' %}"
+                style="color: var(--color-principal); font-weight: 600; text-decoration: none;">
+                Regístrate aquí
+            </a>
+        </p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 1. Encontrar la etiqueta 'Username' y cambiarla a 'Usuario'
+            const usernameLabel = document.querySelector('label[for="id_username"]');
+            if (usernameLabel) {
+                usernameLabel.textContent = 'Usuario:';
+            }
+
+            // 2. Encontrar la etiqueta 'Password' y cambiarla a 'Contraseña'
+            const passwordLabel = document.querySelector('label[for="id_password"]');
+            if (passwordLabel) {
+                passwordLabel.textContent = 'Contraseña:';
+            }
+        });
+    </script>
+    </body>
+</html>

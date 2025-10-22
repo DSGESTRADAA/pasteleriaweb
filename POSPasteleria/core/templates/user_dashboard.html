@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>Bienvenido, Cajero {{ username }}!</h1>
+    <p>Tu única función es el **Punto de Venta**:</p>
+    <ul>
+        <li>Realizar Ventas Rápidas</li>
+        <li>Gestión de Pedidos Especiales</li>
+        <li>Corte de Caja Diario</li>
+    </ul>
+    <p><a href="{% url 'logout' %}">Cerrar Sesión</a></p>
+</body>
+</html>

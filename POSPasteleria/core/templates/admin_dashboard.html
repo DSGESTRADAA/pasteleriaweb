@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }} | POS Pastelería</title>
+    <style>
+        /* Estilos básicos heredados del login (ajustar si es necesario) */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Playfair+Display:wght@700&display=swap');
+
+        :root {
+            --color-principal: #FF9AA2; /* Rosa pastel */
+            --color-acento: #FFDAC1;   /* Melocotón */
+            --color-fondo: #FDF4F5;    /* Crema muy claro */
+            --color-texto: #333333;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--color-fondo);
+            color: var(--color-texto);
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: var(--color-principal);
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        .header a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border: 1px solid white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .header a:hover {
+            background-color: #E0828A;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 2 o 3 columnas flexibles */
+            gap: 30px;
+            padding: 40px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 25px;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: var(--color-principal);
+            border-bottom: 2px solid var(--color-acento);
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        .card ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .card li {
+            margin-bottom: 10px;
+        }
+
+        .card a {
+            color: var(--color-texto);
+            text-decoration: none;
+            font-weight: 500;
+            display: block;
+            padding: 5px 0;
+            transition: color 0.2s;
+        }
+
+        .card a:hover {
+            color: var(--color-principal);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Administración | Pastelera {{ username }}</h1>
+        <a href="{% url 'logout' %}">Cerrar Sesión</a>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h2>Pedidos y Calendario 📅</h2>
+            <ul>
+                <li><a href="#">**Ver Calendario de Producción** (Pedidos Pendientes)</a></li>
+                <li><a href="#">Aprobar/Confirmar Pedidos Especiales</a></li>
+                <li><a href="#">Asignar Tareas de Repostería</a></li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Gestión de Menú y Precios 🧁</h2>
+            <ul>
+                <li><a href="#">**Actualizar Productos/Precios** (Pasteles, Postres)</a></li>
+                <li><a href="#">Añadir Nueva Receta y Costeo</a></li>
+                <li><a href="#">Gestionar Categorías de Producto</a></li>
+                <li><a href="#">Ofertas y Promociones</a></li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h2>Reportes y Finanzas 📈</h2>
+            <ul>
+                <li><a href="#">Reporte de Ventas por Día/Mes</a></li>
+                <li><a href="#">Análisis de Costos y Rentabilidad</a></li>
+                <li><a href="#">Productos más Vendidos</a></li>
+            </ul>
+        </div>
+
+    </div>
+
+</body>
+</html>

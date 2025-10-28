@@ -14,5 +14,6 @@ urlpatterns = [
     path('registro/', views.registro_usuario, name='registro'),
     path('panel/admin/', views.admin_dashboard_view, name='admin_dashboard'),
     path('pos/venta/', views.user_dashboard_view, name='user_dashboard'),
-
+    path('pedidos/', views.pedidos_view, name='pedidos'),
+    path('promociones/', views.promociones_view, name='promociones'),
 ]

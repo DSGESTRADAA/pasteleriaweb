@@ -67,3 +67,9 @@ def registro_usuario(request):
     context = {'form': form, 'title': 'Registro de Nuevo Usuario'}
 
     return render(request, 'registro.html', context)
+
+def pedidos_view(request):
+    return render(request, 'pedidos.html')
+
+def promociones_view(request):
+    return render(request, 'promociones.html')

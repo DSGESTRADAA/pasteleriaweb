@@ -1,17 +1,26 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ title }}</title>
-</head>
-<body>
-    <h1>Bienvenido, Cajero {{ username }}!</h1>
-    <p>Tu única función es el **Punto de Venta**:</p>
-    <ul>
-        <li>Realizar Ventas Rápidas</li>
-        <li>Gestión de Pedidos Especiales</li>
-        <li>Corte de Caja Diario</li>
-    </ul>
-    <p><a href="{% url 'logout' %}">Cerrar Sesión</a></p>
-</body>
-</html>
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Dashboard - Chispitas de Arcoíris{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="logo-container">
+        <img src="{% static 'imagenes/Logo.png' %}" alt="Logo" class="logo-dashboard">
+    </div>
+</div>
+
+<!-- Productos -->
+<section class="productos">
+    <center><h2>Nuestros Postres</h2></center>
+    <div class="grid-productos">
+        {% for i in "123456"|make_list %}
+        <div class="producto">
+            <img src="{% static 'imagenes/postre' %}{{ i }}.jpg" alt="Postre {{ i }}">
+            <h3>Postre {{ i }}</h3>
+            <p>No hay descripcion todavia profe.</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

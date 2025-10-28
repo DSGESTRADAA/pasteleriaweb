@@ -1,0 +1,43 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Chispitas de Arcoíris{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://fonts.googleapis.com/css2?family=Cookie&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+{% if request.path != '/login/' %}
+<header class="dashboard-header">
+    <img src="{% static 'imagenes/encabezado.png' %}" alt="Encabezado" class="header-img">
+
+    <div class="header-overlay">
+        <div class="header-left">
+            <h1 class="titulo">Chispitas <span class="resalte">de Arcoíris</span></h1>
+
+            <nav class="header-nav-left">
+                <a href="{% url 'pedidos' %}" class="nav-item">Pedidos</a>
+                <a href="{% url 'promociones' %}" class="nav-item">Promociones</a>
+                <a href="{% url 'login' %}" class="nav-item">Log out</a>
+            </nav>
+        </div>
+    </div>
+</header>
+{% endif %}
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+{% if request.path != '/login/' %}
+<center>
+<footer>
+    © 2025 Chispitas de Arcoíris · Dulzura en cada mordida 🍰
+</footer>
+</center>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,187 @@
+/* 🔹 Principal */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Quicksand', sans-serif;
+    background-color: #FFEAF0;
+    overflow-x: hidden;
+
+    /* Estilo del login */
+.login-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;   /* centra verticalmente */
+    align-items: center;       /* centra horizontalmente */
+    min-height: 100vh;         /* ocupa toda la altura de la pantalla */
+    background-color: #fffafc; /* tono muy claro de fondo */
+}
+
+.login-container h2 {
+    font-size: 28px;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.login-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;                 /* separación entre inputs */
+    width: 300px;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.login-container label {
+    font-weight: bold;
+    color: #555;
+}
+
+.login-container input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+.login-container button {
+    background-color: #ffb6c1; /* rosa claro */
+    border: none;
+    color: black;
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.login-container button:hover {
+    background-color: #ff9eb3; /* tono rosa más intenso al pasar el cursor */
+}
+
+}
+
+/* 🔹 Encabezado */
+.dashboard-header {
+    position: relative;
+    width: 100%;
+    height: 250px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.dashboard-header .header-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Capa sobre la imagen */
+.header-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column; /* ahora el logo arriba y lo demás abajo */
+    align-items: center;
+    justify-content: center;
+    padding: 20px 20px;
+    text-align: center;
+}
+
+/* Logo centrado */
+.header-logo {
+    width: 60px;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+/* Contenedor principal debajo del logo */
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px; /* espacio entre título y botones */
+}
+
+/* Título */
+.titulo {
+    margin: 0;
+    font-family: 'Cookie', cursive;
+    font-size: 3rem;
+    color: #000000;
+}
+
+.resalte {
+    margin-left: 8px;
+}
+
+/* Navegación en la misma línea que el título */
+.header-nav-left {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+}
+
+.nav-item {
+    background-color: #ffcce0; /* rosa claro */
+    padding: 6px 14px;
+    border-radius: 12px;
+    color: #000000; /* texto negro */
+    font-weight: bold;
+    text-decoration: none;
+    transition: 0.3s;
+}
+
+.nav-item:hover {
+    background-color: #ffb6c1; /* tono más fuerte al pasar el mouse */
+    color: #ffffff;
+}
+
+/* 🔹 Contenedor del logo del dashboard */
+.logo-container {
+    display: flex;
+    justify-content: center; /* centra horizontalmente */
+    align-items: center;     /* centra verticalmente si tiene altura */
+    margin: 15px 15px;          /* espacio arriba y abajo */
+}
+
+/* 🔹 Imagen del logo en el dashboard */
+.logo-dashboard {
+    width: 250px;            /* tamaño ajustable */
+    height: auto;
+}
+
+
+/* 🔹 Productos */
+.productos {
+    padding: 20px;
+}
+
+.grid-productos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.producto {
+    background-color: #ffeaf2;
+    border-radius: 15px;
+    padding: 15px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.producto:hover {
+    transform: scale(1.05);
+}
+
+.producto img {
+    width: 100%;
+    border-radius: 15px;
+}

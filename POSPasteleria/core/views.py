@@ -6,6 +6,7 @@ from django.utils import timezone # ¡Importar timezone para comparar fechas!
 from .models import Producto, Pedido, DetallePedido, User, Promocion # Asegúrate de importar Promocion
 from .forms import ProductoForm,CustomUserCreationForm, PromocionForm # ¡Importar PromocionForm!
 from .decorators import admin_required # <-- NUEVA IMPORTACIÓN
+from .models import PerfilEmpleado # Asegúrate de importar tu modelo de perfil
 import math
 # Importa otros módulos si es necesario (forms.py)
 
@@ -58,22 +59,39 @@ def user_dashboard_view(request):
 
 
 def registro_usuario(request):
-    # 1. Manejo del POST
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
+
         if form.is_valid():
-            form.save()
-            # Si es válido, redirige y termina la función aquí
+            # 1. Crear el objeto User, pero NO lo guardamos aún en la DB (commit=False)
+            user = form.save(commit=False)
+
+            # 2. Configurar y hashear la contraseña de forma segura
+            user.set_password(user.password)
+
+            # 3. Guardar el objeto User en la base de datos
+            user.save()
+
+            # 4. CREAR EL PERFIL Y ASIGNAR EL ROL POR DEFECTO 'cliente'
+            # (Este paso resuelve el IntegrityError)
+            PerfilEmpleado.objects.create(
+                user=user,
+                rol='cliente',  # Asignamos explícitamente el rol por defecto
+                # Nota: Si tu CustomUserCreationForm maneja campos del PerfilEmpleado,
+                # tendrías que pasarlos aquí (ej. telefono=form.cleaned_data.get('telefono')).
+            )
+
+            messages.success(request, '¡Registro exitoso! Ya puedes iniciar sesión.')
+            # Redirige y termina la función aquí
             return redirect('login')
 
-            # 2. Manejo del GET (o si el POST falló la validación)
-    # Si el metodo no fue POST, o si la validación falló, crea un formulario vacío (GET) o
-    # muestra el formulario con errores (POST inválido)
+            # Si la validación falla (el código continúa hacia abajo, renderizando el formulario con errores)
+
+    # 2. Manejo del GET (o si el POST falló la validación)
     else:
         form = CustomUserCreationForm()
 
-    # 3. DEFINICIÓN DEL CONTEXTO (¡MOVEMOS ESTO AL FINAL!)
-    # Esta variable DEBE existir antes del return render.
+    # 3. DEFINICIÓN DEL CONTEXTO (¡DEBE estar al final!)
     context = {'form': form, 'title': 'Registro de Nuevo Usuario'}
 
     return render(request, 'registro.html', context)

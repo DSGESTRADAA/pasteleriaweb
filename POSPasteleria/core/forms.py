@@ -4,8 +4,9 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone # ¡Importar timezone para comparar fechas!<
 from .models import PerfilEmpleado # <--- ¡Asegúrate de que esta línea esté correcta!
-
+from .models import Producto, Promocion
 
 User = get_user_model()
 
@@ -84,3 +85,53 @@ class CustomUserCreationForm(UserCreationForm):
             perfil.save()
 
         return user
+
+class ProductoForm(forms.ModelForm):
+        """
+        Formulario basado en el modelo Producto para añadir/actualizar productos.
+        """
+
+        class Meta:
+            model = Producto
+            # Define los campos que deseas incluir en el formulario
+            fields = [
+                'nombre',
+                'descripcion',
+                'precio',
+                'tamano',
+                'stock',
+                'imagen'
+            ]
+            # Opcional: Personalizar etiquetas
+            labels = {
+                'nombre': 'Nombre del Producto',
+                'tamano': 'Tamaño/Porciones',
+                'stock': 'Stock Inicial',
+                'imagen': 'Foto del Producto',
+            }
+
+class PromocionForm(forms.ModelForm):
+    class Meta:
+        model = Promocion
+        fields = [
+            'titulo',
+            'descripcion',
+            'descuento',
+            'fecha_inicio',
+            'fecha_fin',
+            'activa',
+            'productos' # <-- CLAVE: Incluir el campo Many-to-Many
+        ]
+        # Esto hace que el campo sea un selector de fecha en HTML
+        widgets = {
+            'fecha_inicio': forms.DateInput(attrs={'type': 'date'}),
+            'fecha_fin': forms.DateInput(attrs={'type': 'date'}),
+        }
+        labels = {
+            'titulo': 'Título de la Promoción',
+            'descuento': 'Descuento (%)',
+            'fecha_inicio': 'Fecha de Inicio',
+            'fecha_fin': 'Fecha de Fin',
+            'activa': 'Activa',
+            'productos': 'Productos a los que aplica la promoción' # <-- NUEVO Label
+        }

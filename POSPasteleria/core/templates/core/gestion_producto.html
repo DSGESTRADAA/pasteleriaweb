@@ -1,0 +1,25 @@
+{% extends "base.html" %}  {% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ titulo }}</h1>
+    <hr>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button type="submit" class="btn btn-primary">Guardar Producto</button>
+        <a href="{% url 'menu_gestion' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

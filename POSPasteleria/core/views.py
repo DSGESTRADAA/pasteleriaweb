@@ -1,17 +1,12 @@
-# core/views.py
-from django.shortcuts import render,redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .forms import CustomUserCreationForm # <--- ¡Debe usar este!
-
-from django.contrib.auth.forms import UserCreationForm # Importa el formulario de registro de Django
-
-# La vista de control que solo los usuarios autenticados pueden ver
-# core/views.py
-
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-
-
+from django.db import transaction
+from django.contrib import messages
+from django.utils import timezone # ¡Importar timezone para comparar fechas!
+from .models import Producto, Pedido, DetallePedido, User, Promocion # Asegúrate de importar Promocion
+from .forms import ProductoForm,CustomUserCreationForm, PromocionForm # ¡Importar PromocionForm!
+from .decorators import admin_required # <-- NUEVA IMPORTACIÓN
+import math
 # Importa otros módulos si es necesario (forms.py)
 
 # La vista de control que actúa como router
@@ -38,11 +33,26 @@ def admin_dashboard_view(request):
 
 @login_required
 def user_dashboard_view(request):
-    """Dashboard de usuario (cajero/empleado) limitado al POS."""
+    # Productos (lógica de carrusel existente)
+    productos = Producto.objects.all().filter(stock__gt=0)
+    productos_por_slide = 4
+    carrusel_slides = [
+        productos[i:i + productos_por_slide]
+        for i in range(0, len(productos), productos_por_slide)
+    ]
+
+    # Nuevas: Obtener promociones activas
+    today = timezone.now().date()
+    promociones_activas = Promocion.objects.filter(
+        activa=True,
+        fecha_inicio__lte=today,
+        fecha_fin__gte=today
+    ).prefetch_related('productos').order_by('-fecha_inicio')
+
     context = {
-        'title': 'Punto de Venta (POS)',
-        'username': request.user.username,
-        # Aquí iría la lógica de ventas y pedidos.
+        'titulo': 'Chispitas de Arcoíris',
+        'carrusel_slides': carrusel_slides,
+        'promociones_activas': promociones_activas,  # Pasar las promos al contexto
     }
     return render(request, 'user_dashboard.html', context)
 
@@ -73,3 +83,63 @@ def pedidos_view(request):
 
 def promociones_view(request):
     return render(request, 'promociones.html')
+
+
+from django.contrib import messages  # Importamos para mensajes de éxito/error
+
+
+def gestion_producto_view(request):
+    # Si la petición es POST, el usuario envió datos
+    if request.method == 'POST':
+        # Instanciamos el formulario con los datos POST y los archivos (FILES, para la imagen)
+        form = ProductoForm(request.POST, request.FILES)
+
+        # Validamos el formulario
+        if form.is_valid():
+            # Guarda la instancia del modelo Producto en la base de datos
+            form.save()
+            messages.success(request, '🎉 Producto guardado exitosamente.')
+            # Redirecciona a la misma página para limpiar el formulario o a otra página
+            return redirect('gestion_producto')
+        else:
+            # Si no es válido, agrega un mensaje de error
+            messages.error(request, 'Hubo un error al guardar el producto. Revisa los campos.')
+
+    # Si la petición es GET o si el POST falló la validación
+    else:
+        # Instanciamos un formulario vacío
+        form = ProductoForm()
+
+    context = {
+        'form': form,
+        'titulo': 'Alta de Nuevo Producto'
+    }
+    return render(request, 'core/gestion_producto.html', context)
+
+def menu_gestion_view(request): # <-- ¡Asegúrate que el nombre sea EXACTO!
+    """
+    Vista para mostrar el menú principal de gestión.
+    """
+    return render(request, 'core/menu_gestion.html', {'titulo': 'Menú de Gestión Administrativa'})
+
+
+@admin_required(redirect_url='dashboard')  # Redirige al dashboard si el rol no es 'administrador'
+def gestion_promocion_view(request):
+    if request.method == 'POST':
+        form = PromocionForm(request.POST)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, '🎉 Promoción guardada exitosamente.')
+            # Redireccionamos a la misma página para limpiar el formulario
+            return redirect('gestion_promocion')
+        else:
+            messages.error(request, 'Hubo un error al guardar la promoción. Revisa los campos.')
+    else:
+        form = PromocionForm()
+
+    context = {
+        'form': form,
+        'titulo': 'Alta de Nueva Promoción'
+    }
+    return render(request, 'core/gestion_promocion.html', context)

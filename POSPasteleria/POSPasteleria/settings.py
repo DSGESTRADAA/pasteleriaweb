@@ -125,3 +125,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
 STATIC_ROOT = '/home/mxestrada/pasteleriaweb/static_collected'
+MEDIA_URL = '/media/'
+# Ruta absoluta al directorio 'media' en la raíz de tu proyecto
+MEDIA_ROOT = BASE_DIR / 'media'

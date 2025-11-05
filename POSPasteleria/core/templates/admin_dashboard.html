@@ -119,11 +119,10 @@
         <div class="card">
             <h2>Gestión de Menú y Precios 🧁</h2>
             <ul>
-                <li><a href="#">**Actualizar Productos/Precios** (Pasteles, Postres)</a></li>
+                <li><a href="{% url 'gestion_producto' %}">**Actualizar Productos/Precios** (Pasteles, Postres)</a></li>
                 <li><a href="#">Añadir Nueva Receta y Costeo</a></li>
                 <li><a href="#">Gestionar Categorías de Producto</a></li>
-                <li><a href="#">Ofertas y Promociones</a></li>
-            </ul>
+                <li class="list-group-item"><a href="{% url 'gestion_promocion' %}" class="btn btn-link p-0 text-decoration-none">**Ofertas y Promociones** (Dar de alta promoción)</a></li>
         </div>
 
         <div class="card">

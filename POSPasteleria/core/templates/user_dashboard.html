@@ -5,22 +5,104 @@
 
 {% block content %}
 <div class="dashboard-container">
+    <!-- Aquí puedes añadir elementos de la cabecera si es necesario -->
     <div class="logo-container">
-        <img src="{% static 'imagenes/Logo.png' %}" alt="Logo" class="logo-dashboard">
+        <!-- Si quieres el logo aquí: -->
+        <!-- <img src="{% static 'imagenes/Logo.png' %}" alt="Logo" class="logo-dashboard"> -->
     </div>
 </div>
 
-<!-- Productos -->
-<section class="productos">
-    <center><h2>Nuestros Postres</h2></center>
-    <div class="grid-productos">
-        {% for i in "123456"|make_list %}
-        <div class="producto">
-            <img src="{% static 'imagenes/Postre' %}{{ i }}.jpg" alt="Postre {{ i }}">
-            <h3>Postre {{ i }}</h3>
-            <p>No hay descripcion todavia profe.</p>
+<!-- 1. SECCIÓN DE OFERTAS Y PROMOCIONES (Arriba) -->
+<section class="promociones-activas my-5">
+    <div class="container">
+        {% if promociones_activas %}
+        <center><h2>🔥 ¡Ofertas del Día! 🔥</h2></center>
+        <div class="row justify-content-center">
+            {% for promo in promociones_activas %}
+            <div class="col-md-6 mb-4">
+                <div class="card text-white bg-danger mb-3 shadow-lg">
+                    <div class="card-header">{{ promo.titulo }}</div>
+                    <div class="card-body">
+                        <h4 class="card-title">{{ promo.descuento|floatformat:0 }}% de Descuento</h4>
+                        <p class="card-text">{{ promo.descripcion }}</p>
+
+                        <div class="productos-en-promo">
+                            <small class="text-warning">Aplica a:</small>
+                            <ul class="list-unstyled">
+                                {% for producto in promo.productos.all %}
+                                <li>
+                                    ➡️ {{ producto.nombre }} (Original: ${{ producto.precio|floatformat:2 }})
+                                </li>
+                                {% empty %}
+                                <li>(No hay productos asociados a esta promoción)</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <p class="card-text"><small>Válido hasta {{ promo.fecha_fin|date:"d M Y" }}</small></p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        <hr>
+        {% endif %}
     </div>
 </section>
-{% endblock %}
+
+<!-- 2. SECCIÓN DE PRODUCTOS EN CARRUSEL (Abajo) -->
+<section class="productos my-5">
+    <div class="container">
+        <center><h2>Nuestros Postres</h2></center>
+
+        <div id="productosCarrusel" class="carousel slide" data-bs-ride="carousel">
+            <div class="carousel-inner">
+
+                {% for slide in carrusel_slides %}
+                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+
+                    <div class="row justify-content-center">
+
+                        {% for producto in slide %}
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="producto card shadow-sm h-100">
+                                <img src="{{ producto.imagen.url }}"
+                                     alt="{{ producto.nombre }}"
+                                     class="card-img-top"
+                                     style="height: 200px; object-fit: cover;">
+
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">{{ producto.nombre }}</h5>
+                                    <p class="card-text text-muted mb-1">{{ producto.descripcion|truncatechars:50|default:"Pastelería fresca." }}</p>
+                                    <p class="card-text text-success"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
+                                    <a href="#" class="btn btn-sm btn-outline-primary mt-2">Ver Detalles</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                    </div>
+                </div>
+                {% empty %}
+                <div class="carousel-item active">
+                    <div class="container text-center py-5">
+                        <p>Aún no hay productos cargados en la base de datos.</p>
+                    </div>
+                </div>
+                {% endfor %}
+
+            </div>
+
+            <!-- Controles del Carrusel (Flechas) -->
+            <button class="carousel-control-prev" type="button" data-bs-target="#productosCarrusel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon bg-dark rounded" aria-hidden="true"></span>
+                <span class="visually-hidden">Anterior</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#productosCarrusel" data-bs-slide="next">
+                <span class="carousel-control-next-icon bg-dark rounded" aria-hidden="true"></span>
+                <span class="visually-hidden">Siguiente</span>
+            </button>
+        </div>
+    </div>
+</section>
+{% endblock %} <!-- ÚNICO Y FINAL CIERRE DE BLOQUE -->

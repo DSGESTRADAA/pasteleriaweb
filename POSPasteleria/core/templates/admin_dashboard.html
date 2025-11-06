@@ -102,7 +102,7 @@
 <body>
     <div class="header">
         <h1>Administración | Pastelera {{ username }}</h1>
-        <a href="{% url 'logout' %}">Cerrar Sesión</a>
+        <a href="{% url 'login' %}">Cerrar Sesión</a>
     </div>
 
     <div class="dashboard-grid">
@@ -110,8 +110,8 @@
         <div class="card">
             <h2>Pedidos y Calendario 📅</h2>
             <ul>
-                <li><a href="#">**Ver Calendario de Producción** (Pedidos Pendientes)</a></li>
-                <li><a href="#">Aprobar/Confirmar Pedidos Especiales</a></li>
+                <li><a href="{% url 'admin_calendario_produccion' %}">🗓️ **Ver Calendario de Producción**</a></li>
+                <li class="list-group-item"><a href="{% url 'admin_pedidos_pendientes' %}" class="btn btn-link p-0 text-decoration-none">**Aprobar/Confirmar Pedidos Especiales**</a></li>
                 <li><a href="#">Asignar Tareas de Repostería</a></li>
             </ul>
         </div>

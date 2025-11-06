@@ -1,0 +1,37 @@
+{% extends "core/base_admin.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ titulo }}</h1>
+    <hr>
+
+    <div class="row mb-4">
+        <p><strong>Descripción del Cliente:</strong> {{ pedido.descripcion }}</p>
+        <p class="text-danger">Precio Sugerido por el Cliente: <strong>${{ pedido.precio_establecido|floatformat:2 }}</strong></p>
+    </div>
+
+    {% if pedido.estado == 'confirmado' or pedido.estado == 'cancelado' %}
+        <div class="alert alert-info">Este pedido ya tiene una respuesta.</div>
+    {% else %}
+        <form method="POST">
+            {% csrf_token %}
+
+            {{ form.as_p }}
+
+            <p class="text-muted">Al APROBAR, el precio cotizado reemplazará el precio sugerido y se notificará al cliente.</p>
+
+            <button type="submit" name="action" value="aprobar_cotizar" class="btn btn-success btn-lg">
+                ✅ Aceptar Cotización y Notificar al Cliente
+            </button>
+
+            <button type="submit" name="action" value="rechazar" class="btn btn-danger btn-lg ms-3">
+                ❌ Rechazar Pedido
+            </button>
+        </form>
+    {% endif %}
+
+    <a href="{% url 'admin_pedidos_pendientes' %}" class="btn btn-secondary mt-4">← Volver a la Lista</a>
+</div>
+{% endblock %}

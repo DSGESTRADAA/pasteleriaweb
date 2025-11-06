@@ -75,7 +75,7 @@
                                     <h5 class="card-title">{{ producto.nombre }}</h5>
                                     <p class="card-text text-muted mb-1">{{ producto.descripcion|truncatechars:50|default:"Pastelería fresca." }}</p>
                                     <p class="card-text text-success"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
-                                    <a href="#" class="btn btn-sm btn-outline-primary mt-2">Ver Detalles</a>
+                                    <a href="{% url 'hacer_pedido' producto.id %}" class="btn btn-sm btn-outline-primary mt-2">Agregar Pedido</a>
                                 </div>
                             </div>
                         </div>

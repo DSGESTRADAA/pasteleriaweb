@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ titulo }}</h1>
+    <hr>
+
+    {% for pedido in pedidos %}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-light">
+            Pedido #{{ pedido.id }} | Estado:
+            <span class="badge bg-{% if pedido.estado == 'pendiente' %}warning{% elif pedido.estado == 'confirmado' %}info{% elif pedido.estado == 'entregado' %}success{% else %}danger{% endif %}">
+                {{ pedido.estado|capfirst }}
+            </span>
+        </div>
+
+        <div class="card-body row">
+            <div class="col-md-8">
+                <p>Solicitado el: {{ pedido.fecha_pedido|date:"d M Y" }}</p>
+                <p>Fecha Entrega Deseada: {{ pedido.fecha_entrega|date:"d M Y"|default:"N/A" }}</p>
+                <p>Descripción: <span class="text-muted">{{ pedido.descripcion|truncatechars:100|default:"Pedido estándar sin detalles especiales." }}</span></p>
+
+                {% with pedido.respuestapedido as respuesta %}
+    {% if respuesta %}
+        {% if respuesta.cliente_acepta and pedido.estado == 'confirmado' %}
+            <div class="alert alert-success mt-2">
+                <p class="mb-0">{{ respuesta.comentario }}</p>
+            </div>
+        {% elif not respuesta.cliente_acepta and pedido.estado == 'cancelado' %}
+             <div class="alert alert-danger mt-2">
+                <strong>Pedido Rechazado.</strong> Razón: {{ respuesta.comentario }}
+            </div>
+        {% endif %}
+    {% endif %}
+{% endwith %}
+            </div>
+
+            <div class="col-md-4 text-end d-flex flex-column justify-content-center">
+
+                {% if pedido.estado == 'confirmado' %}
+                    <p class="text-primary mb-2">Precio a pagar: <strong>${{ pedido.precio_establecido|floatformat:2 }}</strong></p>
+
+                    <form method="POST" action="{% url 'cliente_pagar_pedido' pedido.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            Pagar y Confirmar Pedido
+                        </button>
+                    </form>
+                {% endif %}
+
+                {% if pedido.estado == 'entregado' %}
+                    <p class="text-success fs-5">¡Pedido Pagado y en Preparación!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

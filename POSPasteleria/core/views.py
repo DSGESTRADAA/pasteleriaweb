@@ -3,10 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.contrib import messages
 from django.utils import timezone # ¡Importar timezone para comparar fechas!
-from .models import Producto, Pedido, DetallePedido, User, Promocion # Asegúrate de importar Promocion
-from .forms import ProductoForm,CustomUserCreationForm, PromocionForm # ¡Importar PromocionForm!
+from .models import Producto, Pedido, DetallePedido, User, Promocion, RespuestaPedido # Asegúrate de importar Promocion
+from .forms import ProductoForm,CustomUserCreationForm, PromocionForm, PedidoForm,RespuestaPedidoForm # ¡Importar PromocionForm!
 from .decorators import admin_required # <-- NUEVA IMPORTACIÓN
 from .models import PerfilEmpleado # Asegúrate de importar tu modelo de perfil
+from django.views.decorators.http import require_http_methods # Útil para la vista POST
 import math
 # Importa otros módulos si es necesario (forms.py)
 
@@ -67,7 +68,6 @@ def registro_usuario(request):
             user = form.save(commit=False)
 
             # 2. Configurar y hashear la contraseña de forma segura
-            user.set_password(user.password)
 
             # 3. Guardar el objeto User en la base de datos
             user.save()
@@ -161,3 +161,223 @@ def gestion_promocion_view(request):
         'titulo': 'Alta de Nueva Promoción'
     }
     return render(request, 'core/gestion_promocion.html', context)
+
+
+@login_required(login_url='login')  # El usuario debe estar logueado para hacer un pedido
+def hacer_pedido_view(request, producto_id):
+    producto = get_object_or_404(Producto, id=producto_id)
+
+    if request.method == 'POST':
+        form = PedidoForm(request.POST)
+        if form.is_valid():
+
+            # 1. Crear el Pedido (sin guardar en la DB aún)
+            pedido = form.save(commit=False)
+
+            # 2. Asignar datos obligatorios
+            pedido.usuario = request.user
+            pedido.estado = 'pendiente'
+            # El precio es estimado o se calculará después (para pedidos personalizados)
+            # Para este ejemplo, usaremos el precio base del producto * cantidad
+            cantidad = form.cleaned_data.get('cantidad', 1)
+            pedido.precio_establecido = producto.precio * cantidad
+
+            pedido.save()
+
+            # 3. Crear el Detalle del Pedido
+            DetallePedido.objects.create(
+                pedido=pedido,
+                producto=producto,
+                cantidad=cantidad,
+                precio_unitario=producto.precio,
+                subtotal=producto.precio * cantidad
+            )
+
+            messages.success(request,
+                             f"🎉 Tu pedido para {producto.nombre} ha sido enviado. Recibirás una respuesta pronto.")
+            return redirect('dashboard')  # Redirige al dashboard después de ordenar
+
+        else:
+            messages.error(request, 'Hubo un error al procesar tu pedido. Por favor, revisa los datos.')
+
+    else:
+        # Petición GET: Carga el formulario.
+        form = PedidoForm()
+
+    context = {
+        'form': form,
+        'producto': producto,
+        'titulo': f'Personalizar y Pedir: {producto.nombre}',
+    }
+    return render(request, 'core/hacer_pedido.html', context)
+
+
+@admin_required(redirect_url='dashboard')
+def admin_pedidos_pendientes_view(request):
+    """
+    Muestra todos los pedidos que están en estado 'pendiente' para revisión del administrador.
+    """
+    # Usamos prefetch_related para obtener los detalles del pedido y el producto
+    # en pocas consultas, mejorando la velocidad.
+    pedidos_pendientes = Pedido.objects.filter(estado='pendiente').order_by('fecha_pedido').prefetch_related(
+        'detallepedido_set__producto',  # Accede a los detalles y luego al producto asociado
+        'usuario'  # Accede al usuario que hizo el pedido
+    )
+
+    context = {
+        'pedidos': pedidos_pendientes,
+        'titulo': 'Pedidos Especiales Pendientes de Aprobación',
+    }
+    return render(request, 'core/admin_pedidos_pendientes.html', context)
+
+
+@admin_required(redirect_url='dashboard')
+def admin_aprobar_pedido_view(request, pedido_id):
+    pedido = get_object_or_404(Pedido.objects.prefetch_related('detallepedido_set__producto'), id=pedido_id)
+
+    # Si ya existe una respuesta (para evitar duplicados)
+    try:
+        respuesta = RespuestaPedido.objects.get(pedido=pedido)
+    except RespuestaPedido.DoesNotExist:
+        respuesta = None
+
+    if request.method == 'POST':
+        form = RespuestaPedidoForm(request.POST)
+        action = request.POST.get('action')  # Captura la acción del botón (cotizar/rechazar)
+
+        if form.is_valid():
+            precio_cotizado = form.cleaned_data.get('precio_cotizado')
+            comentario = form.cleaned_data.get('comentario')
+
+            with transaction.atomic():
+                if action == 'aprobar_cotizar':
+                    # 1. Actualizar el precio cotizado en el Pedido
+                    pedido.precio_establecido = precio_cotizado
+                    pedido.estado = 'confirmado'  # El admin lo confirma (a la espera del pago del cliente)
+                    pedido.save()
+
+                    # 2. Crear la respuesta para el cliente
+                    RespuestaPedido.objects.create(
+                        pedido=pedido,
+                        cliente_acepta=True,  # Admin aprueba la cotización
+                        comentario=comentario
+                    )
+                    messages.success(request,
+                                     f'Cotización (${precio_cotizado}) enviada al cliente para el Pedido #{pedido_id}.')
+
+                elif action == 'rechazar':
+                    # 1. Actualizar estado y crear respuesta de rechazo
+                    pedido.estado = 'cancelado'
+                    pedido.save()
+                    RespuestaPedido.objects.create(
+                        pedido=pedido,
+                        cliente_acepta=False,  # Admin lo rechaza
+                        comentario=comentario or "El pedido fue rechazado por razones de logística o capacidad."
+                    )
+                    messages.warning(request, f'Pedido #{pedido_id} rechazado y notificado al cliente.')
+
+            return redirect('admin_pedidos_pendientes')
+
+    else:
+        # Inicializar el formulario con el precio sugerido (si no hay respuesta)
+        initial_data = {}
+        if not respuesta:
+            # Si no hay respuesta previa, usa el precio estimado del pedido
+            initial_data['precio_cotizado'] = pedido.precio_establecido
+
+        form = RespuestaPedidoForm(initial=initial_data)
+
+    context = {
+        'pedido': pedido,
+        'form': form,
+        'respuesta': respuesta,
+        'titulo': f'Revisar Pedido #{pedido_id}',
+    }
+    return render(request, 'core/admin_aprobar_pedido.html', context)
+
+
+@login_required(login_url='login')
+def cliente_pedidos_view(request):
+    # Obtener pedidos del usuario actual
+    pedidos_cliente = Pedido.objects.filter(usuario=request.user).order_by('-fecha_pedido').prefetch_related(
+        'detallepedido_set__producto',
+
+        'respuestapedido'  # <-- ¡CLAVE! SIN _set
+
+    )
+
+    context = {
+        'pedidos': pedidos_cliente,
+        # ...
+    }
+    return render(request, 'core/cliente_pedidos.html', context)
+
+
+@login_required(login_url='login')
+def cliente_pagar_pedido_view(request, pedido_id):
+    if request.method == 'POST':
+        pedido = get_object_or_404(Pedido, id=pedido_id, usuario=request.user, estado='confirmado')
+
+        # 1. Actualizar el estado del Pedido:
+        # Antes era 'entregado', ahora es 'en_preparacion'
+        pedido.estado = 'en_preparacion'  # <-- ¡CLAVE!
+        pedido.save()
+
+        messages.success(request, f"Pago del Pedido #{pedido.id} exitoso. ¡Tu pedido está en preparación!")
+
+    return redirect('cliente_pedidos')
+
+
+@admin_required(redirect_url='dashboard')
+def admin_calendario_produccion_view(request):
+    # Ahora incluimos el estado 'en_preparacion'
+    estados_activos = ['en_preparacion', 'listo_para_entrega']  # <-- ¡CLAVE!
+
+    # ... (el resto de la consulta es igual) ...
+    pedidos_produccion = Pedido.objects.filter(
+        estado__in=estados_activos
+    ).order_by('fecha_entrega').prefetch_related(
+        'detallepedido_set__producto'  # Optimizar la carga de detalles
+    )
+
+    # Agrupar pedidos por fecha de entrega para el formato de "calendario"
+    pedidos_agrupados = {}
+    for pedido in pedidos_produccion:
+        # Formatear la fecha para usarla como clave
+        fecha_str = pedido.fecha_entrega.strftime('%Y-%m-%d')
+        if fecha_str not in pedidos_agrupados:
+            pedidos_agrupados[fecha_str] = []
+        pedidos_agrupados[fecha_str].append(pedido)
+
+    context = {
+        'pedidos_agrupados': pedidos_agrupados,
+        # Estados disponibles para que el administrador pueda cambiar:
+        'estados_disponibles': ['confirmado', 'en_produccion', 'listo_para_entrega', 'entregado', 'cancelado']
+    }
+    return render(request, 'core/admin_calendario_produccion.html', context)
+
+
+# Vista para manejar la solicitud POST de cambio de estado
+@admin_required(redirect_url='dashboard')
+@require_http_methods(["POST"])
+def admin_cambiar_estado_pedido_view(request, pedido_id):
+    pedido = get_object_or_404(Pedido, id=pedido_id)
+    nuevo_estado = request.POST.get('nuevo_estado')
+
+    # Lista de estados válidos para validación
+    estados_validos = ['confirmado', 'en_produccion', 'listo_para_entrega', 'entregado', 'cancelado']
+
+    if nuevo_estado in estados_validos:
+        # Actualizar el estado y guardar
+        pedido.estado = nuevo_estado
+        pedido.save()
+
+        # Mostrar mensaje de éxito
+        messages.success(request,
+                         f"El estado del Pedido #{pedido.id} ha sido actualizado a: {nuevo_estado.replace('_', ' ').title()}")
+    else:
+        # Mostrar mensaje de error
+        messages.error(request, "Error: El estado seleccionado no es válido.")
+
+    # Redirigir de vuelta al calendario de producción
+    return redirect('admin_calendario_produccion')

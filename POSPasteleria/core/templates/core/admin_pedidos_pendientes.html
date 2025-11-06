@@ -1,0 +1,67 @@
+{% extends "core/base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ titulo }}</h1>
+    <hr>
+
+    {% if pedidos %}
+        <p class="lead text-muted">Total de solicitudes pendientes: {{ pedidos.count }}</p>
+
+        {% for pedido in pedidos %}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-warning text-dark">
+                <div class="d-flex justify-content-between">
+                    <strong>Pedido #{{ pedido.id }}</strong>
+                    <span>Fecha Solicitud: {{ pedido.fecha_pedido|date:"d M Y H:i" }}</span>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 border-end">
+                        <h6>👤 Cliente</h6>
+                        <p class="mb-1"><strong>Usuario:</strong> {{ pedido.usuario.username }}</p>
+                        <p class="mb-1"><strong>Email:</strong> {{ pedido.usuario.email|default:"No disponible" }}</p>
+                        <p class="mb-0"><strong>Teléfono:</strong> {{ pedido.usuario.perfilempleado.numero_telefono|default:"N/A" }}</p>
+                        <p class="mt-2 text-primary"><strong>Entrega Solicitada:</strong> {{ pedido.fecha_entrega|date:"d M Y"|default:"Tan pronto como sea posible" }}</p>
+                    </div>
+
+                    <div class="col-md-5 border-end">
+                        <h6>🍰 Personalización del Pastel</h6>
+                        <ul class="list-unstyled mb-0">
+                            <li><strong>Producto Base:</strong>
+                                {% for detalle in pedido.detallepedido_set.all %}
+                                    {{ detalle.producto.nombre }} (x{{ detalle.cantidad }})
+                                {% endfor %}
+                            </li>
+                            <li><strong>Tamaño:</strong> {{ pedido.tamano|default:"No especificado" }}</li>
+                            <li><strong>Sabor Pan:</strong> {{ pedido.sabor_pan|default:"No especificado" }}</li>
+                            <li><strong>Relleno:</strong> {{ pedido.relleno|default:"No especificado" }}</li>
+                            <li><strong>Descripción:</strong> <span class="text-muted">{{ pedido.descripcion|truncatechars:50|default:"N/A" }}</span></li>
+                        </ul>
+                    </div>
+
+                    <div class="col-md-3 text-center d-flex flex-column justify-content-center">
+                        <p class="mb-3 fs-5">Precio Sugerido: <strong>${{ pedido.precio_establecido|floatformat:2 }}</strong></p>
+
+                        {% if pedido.estado == 'pendiente' %}<a href="{% url 'admin_aprobar_pedido' pedido.id %}" class="btn btn-success btn-sm mb-2">Aprobar y Cotizar</a>
+                        {% else %}<button class="btn btn-secondary btn-sm mb-2" disabled>Ya respondido</button>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+    {% else %}
+        <div class="alert alert-success">
+            🥳 No hay pedidos especiales pendientes de revisión.
+        </div>
+    {% endif %}
+
+    <a href="{% url 'menu_gestion' %}" class="btn btn-secondary mt-4">← Volver al Menú</a>
+</div>
+{% endblock %}

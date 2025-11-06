@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <a href="{% url 'cliente_pedidos' %}" class="btn btn-outline-secondary mb-4">
+        ← Volver a Mis Pedidos
+    </a>
+
+    <h1>Detalle del Pedido #{{ pedido.id }}</h1>
+    <hr>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="row">
+
+        <div class="col-md-6">
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    Información General
+                </div>
+                <div class="card-body">
+                    <p><strong>Estado Actual:</strong>
+                        <span class="badge bg-{% if pedido.estado == 'pendiente' %}warning{% elif pedido.estado == 'confirmado' %}info{% elif pedido.estado == 'entregado' %}success{% else %}danger{% endif %}">
+                            {{ pedido.estado|capfirst }}
+                        </span>
+                    </p>
+                    <p><strong>Fecha de Solicitud:</strong> {{ pedido.fecha_pedido|date:"d \d\e F \d\e Y" }}</p>
+                    <p><strong>Entrega Requerida:</strong> {{ pedido.fecha_entrega|date:"d \d\e F \d\e Y"|default:"N/A" }}</p>
+                    <hr>
+                    <h6>🎂 Detalles de Personalización</h6>
+                    <p class="mb-1"><strong>Tamaño:</strong> {{ pedido.tamano|default:"No especificado" }}</p>
+                    <p class="mb-1"><strong>Sabor Pan:</strong> {{ pedido.sabor_pan|default:"No especificado" }}</p>
+                    <p class="mb-1"><strong>Relleno:</strong> {{ pedido.relleno|default:"No especificado" }}</p>
+                    <p class="mb-0"><strong>Descripción Especial:</strong> {{ pedido.descripcion|default:"N/A" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+
+            {% if respuesta %}
+            <div class="card border-{% if respuesta.cliente_acepta %}success{% else %}danger{% endif %} mb-4 shadow-sm">
+                <div class="card-header bg-{% if respuesta.cliente_acepta %}success{% else %}danger{% endif %} text-white">
+                    Respuesta del Administrador
+                </div>
+                <div class="card-body">
+                    {% if respuesta.cliente_acepta %}
+                        <p class="fs-4 text-success">¡APROBADO! Precio Final: <strong>${{ pedido.precio_establecido|floatformat:2 }}</strong></p>
+                        {% if pedido.estado == 'confirmado' %}
+                            <p class="text-danger">PENDIENTE DE PAGO</p>
+                            <form method="POST" action="{% url 'cliente_pagar_pedido' pedido.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    Pagar y Confirmar Pedido
+                                </button>
+                            </form>
+                        {% endif %}
+                    {% else %}
+                         <p class="fs-5 text-danger">❌ PEDIDO RECHAZADO</p>
+                    {% endif %}
+                    <p class="mt-2"><strong>Comentario:</strong> {{ respuesta.comentario|default:"N/A" }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    Productos Incluidos
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for detalle in detalles %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ detalle.producto.nombre }}</strong>
+                            <span class="text-muted small">({{ detalle.producto.tamano|default:"Estándar" }})</span>
+                        </div>
+                        <span class="badge bg-secondary">x{{ detalle.cantidad }}</span>
+                        <span class="text-end">
+                            ${{ detalle.subtotal|floatformat:2 }}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <div class="card-footer text-end">
+                    Total Cotizado: <span class="fs-5 text-success"><strong>${{ pedido.precio_establecido|floatformat:2 }}</strong></span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

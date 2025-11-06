@@ -58,11 +58,18 @@
         <div id="productosCarrusel" class="carousel slide" data-bs-ride="carousel">
             <div class="carousel-inner">
 
+                <!--
+                  INICIO DE LA CORRECCIÓN:
+                  El bucle principal 'carrusel_slides' debe envolver el 'carousel-item'.
+                  El bucle 'producto in slide' debe ir DENTRO del 'row'.
+                -->
+
                 {% for slide in carrusel_slides %}
                 <div class="carousel-item {% if forloop.first %}active{% endif %}">
 
                     <div class="row justify-content-center">
 
+                        <!-- Bucle interno: Itera sobre los productos de ESTE slide -->
                         {% for producto in slide %}
                         <div class="col-md-3 col-sm-6 mb-4">
                             <div class="producto card shadow-sm h-100">
@@ -75,21 +82,40 @@
                                     <h5 class="card-title">{{ producto.nombre }}</h5>
                                     <p class="card-text text-muted mb-1">{{ producto.descripcion|truncatechars:50|default:"Pastelería fresca." }}</p>
                                     <p class="card-text text-success"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
-                                    <a href="{% url 'hacer_pedido' producto.id %}" class="btn btn-sm btn-outline-primary mt-2">Agregar Pedido</a>
+
+                                    <!-- Lógica de Stock -->
+                                    <p class="card-text">
+                                        {% if producto.stock > 0 %}
+                                            <span class="badge bg-success">Disponible: {{ producto.stock }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Agotado</span>
+                                        {% endif %}
+                                    </p>
+
+                                    <!-- Lógica de Botón de Pedido Simple -->
+                                    {% if producto.stock > 0 %}
+                                        <a href="{% url 'solicitar_pedido_simple' producto.id %}" class="btn btn-sm btn-outline-primary mt-2">
+                                            Solicitar Pedido
+                                        </a>
+                                    {% else %}
+                                        <a href="#" class="btn btn-sm btn-outline-secondary mt-2" disabled>No Disponible</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-                        {% endfor %}
+                        {% endfor %} <!-- Fin del bucle interno (producto in slide) -->
 
-                    </div>
-                </div>
+                    </div> <!-- Fin del .row -->
+                </div> <!-- Fin del .carousel-item -->
+
                 {% empty %}
+                <!-- Caso vacío (si no hay slides) -->
                 <div class="carousel-item active">
                     <div class="container text-center py-5">
                         <p>Aún no hay productos cargados en la base de datos.</p>
                     </div>
                 </div>
-                {% endfor %}
+                {% endfor %} <!-- Fin del bucle principal (slide in carrusel_slides) -->
 
             </div>
 

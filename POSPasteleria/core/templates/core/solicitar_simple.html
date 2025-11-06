@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Solicitar {{ producto.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <h1>Solicitar: {{ producto.nombre }}</h1>
+            <hr>
+
+            <div class="row mb-4 align-items-center border p-3 rounded shadow-sm">
+                <div class="col-md-3 text-center">
+                    <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="img-fluid rounded" style="max-height: 100px; object-fit: cover;">
+                </div>
+                <div class="col-md-9">
+                    <p class="lead mb-1">Producto: <strong>{{ producto.nombre }}</strong></p>
+                    <p class="mb-1">Precio Unitario: <strong class="text-success">${{ producto.precio|floatformat:2 }}</strong></p>
+                    <p class="mb-0">Stock Disponible: <span class="badge bg-info">{{ producto.stock }}</span></p>
+                </div>
+            </div>
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+
+                {{ form.as_p }}
+
+                <p class="mt-4 text-muted">El precio final será calculado como: Precio Unitario x Cantidad. Su pedido será cotizado con este precio.</p>
+
+                <button type="submit" class="btn btn-primary btn-lg mt-3">Confirmar Solicitud</button>
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

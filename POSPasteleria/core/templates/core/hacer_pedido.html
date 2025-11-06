@@ -10,8 +10,7 @@
             <h1>{{ titulo }}</h1>
             <hr>
 
-            <p class="lead">Estás solicitando: <strong>{{ producto.nombre }}</strong></p>
-            <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="img-fluid mb-4" style="max-height: 250px; object-fit: cover;">
+            <p class="lead">Describe el pastel o postre que tienes en mente. Un administrador revisará tu solicitud y te enviará una cotización.</p>
 
             {% if messages %}
                 {% for message in messages %}
@@ -24,7 +23,7 @@
 
                 {{ form.as_p }}
 
-                <p class="mt-4 text-muted">Nota: El precio es estimado ( ${{ producto.precio|floatformat:2 }} x Cantidad) y será confirmado por un administrador después de revisar tu personalización.</p>
+                <p class="mt-4 text-muted">Nota: El precio será cotizado por un administrador basado en tu personalización.</p>
 
                 <button type="submit" class="btn btn-primary btn-lg mt-3">Enviar Solicitud de Pedido</button>
                 <a href="{% url 'dashboard' %}" class="btn btn-secondary mt-3">Cancelar</a>

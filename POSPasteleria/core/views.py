@@ -8,6 +8,7 @@ from .forms import ProductoForm,CustomUserCreationForm, PromocionForm, PedidoFor
 from .decorators import admin_required # <-- NUEVA IMPORTACIÓN
 from .models import PerfilEmpleado # Asegúrate de importar tu modelo de perfil
 from django.views.decorators.http import require_http_methods # Útil para la vista POST
+from .forms import SolicitudSimpleForm
 import math
 # Importa otros módulos si es necesario (forms.py)
 
@@ -163,51 +164,38 @@ def gestion_promocion_view(request):
     return render(request, 'core/gestion_promocion.html', context)
 
 
-@login_required(login_url='login')  # El usuario debe estar logueado para hacer un pedido
-def hacer_pedido_view(request, producto_id):
-    producto = get_object_or_404(Producto, id=producto_id)
+@login_required(login_url='login')
+def hacer_pedido_personalizado_view(request):
+    # Ya no necesitamos el producto, es 100% personalizado
 
     if request.method == 'POST':
-        form = PedidoForm(request.POST)
+        form = PedidoForm(request.POST)  # Usamos el PedidoForm que ya existe
         if form.is_valid():
 
-            # 1. Crear el Pedido (sin guardar en la DB aún)
             pedido = form.save(commit=False)
 
-            # 2. Asignar datos obligatorios
             pedido.usuario = request.user
-            pedido.estado = 'pendiente'
-            # El precio es estimado o se calculará después (para pedidos personalizados)
-            # Para este ejemplo, usaremos el precio base del producto * cantidad
-            cantidad = form.cleaned_data.get('cantidad', 1)
-            pedido.precio_establecido = producto.precio * cantidad
+            pedido.estado = 'pendiente'  # El admin debe cotizarlo
+
+            # El precio es 0 porque el admin debe cotizarlo
+            pedido.precio_establecido = 0
 
             pedido.save()
 
-            # 3. Crear el Detalle del Pedido
-            DetallePedido.objects.create(
-                pedido=pedido,
-                producto=producto,
-                cantidad=cantidad,
-                precio_unitario=producto.precio,
-                subtotal=producto.precio * cantidad
-            )
+            # NO CREAMOS DetallePedido (porque no hay producto)
 
             messages.success(request,
-                             f"🎉 Tu pedido para {producto.nombre} ha sido enviado. Recibirás una respuesta pronto.")
-            return redirect('dashboard')  # Redirige al dashboard después de ordenar
-
+                             f"🎉 Tu solicitud de pedido personalizado ha sido enviada. Recibirás una cotización pronto.")
+            return redirect('cliente_pedidos')  # Lo mandamos a sus pedidos
         else:
-            messages.error(request, 'Hubo un error al procesar tu pedido. Por favor, revisa los datos.')
+            messages.error(request, 'Hubo un error al procesar tu solicitud.')
 
     else:
-        # Petición GET: Carga el formulario.
         form = PedidoForm()
 
     context = {
         'form': form,
-        'producto': producto,
-        'titulo': f'Personalizar y Pedir: {producto.nombre}',
+        'titulo': 'Solicitar Pedido Personalizado',
     }
     return render(request, 'core/hacer_pedido.html', context)
 
@@ -381,3 +369,98 @@ def admin_cambiar_estado_pedido_view(request, pedido_id):
 
     # Redirigir de vuelta al calendario de producción
     return redirect('admin_calendario_produccion')
+
+
+@login_required(login_url='login')
+def solicitar_pedido_simple_view(request, producto_id):
+    producto = get_object_or_404(Producto, id=producto_id)
+
+    # Si no hay stock para al menos 1 unidad, redirigir inmediatamente
+    if producto.stock <= 0:
+        messages.error(request, f"Lo sentimos, {producto.nombre} está agotado.")
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = SolicitudSimpleForm(request.POST)
+        if form.is_valid():
+            cantidad = form.cleaned_data['cantidad']
+            fecha_entrega = form.cleaned_data['fecha_entrega']
+
+            # Re-verificar stock con la cantidad solicitada
+            if cantidad > producto.stock:
+                messages.error(request,
+                               f"Solo quedan {producto.stock} unidades de {producto.nombre}. No se pueden solicitar {cantidad}.")
+                # Volver a renderizar el formulario con el error
+                return render(request, 'core/solicitar_simple.html', {'producto': producto, 'form': form})
+
+                # --- Lógica de Creación del Pedido (si todo es válido) ---
+            subtotal = producto.precio * cantidad
+
+            try:
+                # 1. Crear el Pedido (estado pendiente)
+                nuevo_pedido = Pedido.objects.create(
+                    usuario=request.user,
+                    estado='pendiente',
+                    precio_establecido=subtotal,
+                    fecha_entrega=fecha_entrega,
+                )
+
+                # 2. Crear el Detalle del Pedido
+                DetallePedido.objects.create(
+                    pedido=nuevo_pedido,
+                    producto=producto,
+                    cantidad=cantidad,
+                    precio_unitario=producto.precio,
+                    subtotal=subtotal
+                )
+
+                # 3. Descontar el stock
+                producto.stock -= cantidad
+                producto.save()
+
+                messages.success(request,
+                                 f"Solicitud para {cantidad}x {producto.nombre} enviada para el {fecha_entrega}. Un administrador confirmará su pago.")
+
+            except Exception as e:
+                messages.error(request, f"Error al procesar la solicitud: {e}")
+
+            return redirect('cliente_pedidos')
+
+    else:
+        # GET request: Display the form
+        form = SolicitudSimpleForm()
+
+    context = {
+        'producto': producto,
+        'form': form,
+    }
+    return render(request, 'core/solicitar_simple.html', context)
+
+
+@login_required(login_url='login')
+def cliente_detalle_pedido_view(request, pedido_id):
+    """Muestra los detalles completos de un solo pedido al cliente."""
+
+    # 1. Obtener el pedido, asegurándose de que pertenezca al usuario logueado
+    pedido = get_object_or_404(
+        Pedido.objects.prefetch_related('detallepedido_set__producto', 'respuestapedido'),
+        id=pedido_id,
+        usuario=request.user  # CLAVE: Seguridad para que solo vea sus pedidos
+    )
+
+    # 2. Obtener la respuesta del administrador (si existe)
+    try:
+        respuesta = pedido.respuestapedido
+    except RespuestaPedido.DoesNotExist:
+        respuesta = None
+
+    # 3. Obtener los detalles del pedido (productos)
+    detalles = pedido.detallepedido_set.all()
+
+    context = {
+        'pedido': pedido,
+        'respuesta': respuesta,
+        'detalles': detalles,
+        'titulo': f'Detalles del Pedido #{pedido_id}',
+    }
+    return render(request, 'core/cliente_detalle_pedido.html', context)

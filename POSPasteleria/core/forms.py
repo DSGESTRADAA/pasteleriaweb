@@ -4,9 +4,11 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import get_user_model
 from django import forms
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from django.utils import timezone # ¡Importar timezone para comparar fechas!<
 from .models import PerfilEmpleado # <--- ¡Asegúrate de que esta línea esté correcta!
 from .models import Producto, Promocion, Pedido,RespuestaPedido
+from datetime import date, timedelta
 
 User = get_user_model()
 
@@ -215,3 +217,30 @@ class RespuestaPedidoForm(forms.ModelForm):
         # Eliminamos cliente_acepta si existe, ya que lo estamos manejando con HiddenInput
         if 'cliente_acepta' in self.fields:
             del self.fields['cliente_acepta']
+
+
+class SolicitudSimpleForm(forms.Form):
+    """Formulario para capturar cantidad y fecha de entrega para un producto en stock."""
+
+    cantidad = forms.IntegerField(
+        label='Cantidad a Solicitar',
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'type': 'number'})
+    )
+
+    fecha_entrega = forms.DateField(
+        label='Fecha de Entrega Requerida',
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        input_formats=['%Y-%m-%d']
+    )
+
+    def clean_fecha_entrega(self):
+        """Asegura que la fecha de entrega sea al menos 2 días después de hoy."""
+        fecha = self.cleaned_data.get('fecha_entrega')
+        min_fecha_entrega = date.today() + timedelta(days=2)
+
+        if fecha and fecha < min_fecha_entrega:
+            raise ValidationError("La fecha de entrega debe ser al menos 2 días después de hoy para la preparación.")
+
+        return fecha

@@ -20,14 +20,15 @@ urlpatterns = [
     path('gestion/', views.menu_gestion_view, name='menu_gestion'),
     path('gestion/producto/nuevo/', views.gestion_producto_view, name='gestion_producto'),
     path('gestion/promocion/nueva/', views.gestion_promocion_view, name='gestion_promocion'), # NUEVA URL
-    path('pedido/nuevo/<int:producto_id>/', views.hacer_pedido_view, name='hacer_pedido'),
+    path('pedido/personalizado/', views.hacer_pedido_personalizado_view, name='hacer_pedido_personalizado'),
     path('gestion/pedidos/pendientes/', views.admin_pedidos_pendientes_view, name='admin_pedidos_pendientes'),
     path('gestion/pedidos/aprobar/<int:pedido_id>/', views.admin_aprobar_pedido_view, name='admin_aprobar_pedido'),
     path('cliente/pedidos/', views.cliente_pedidos_view, name='cliente_pedidos'),
+    path('cliente/pedidos/<int:pedido_id>/', views.cliente_detalle_pedido_view, name='cliente_detalle_pedido'),
     path('cliente/pagar/<int:pedido_id>/', views.cliente_pagar_pedido_view, name='cliente_pagar_pedido'),
     path('gestion/calendario/', views.admin_calendario_produccion_view, name='admin_calendario_produccion'),
     path('gestion/cambiar-estado/<int:pedido_id>/', views.admin_cambiar_estado_pedido_view,name='admin_cambiar_estado_pedido'),
-
+    path('pedido/solicitar-simple/<int:producto_id>/', views.solicitar_pedido_simple_view, name='solicitar_pedido_simple'),
 ]
 
 if settings.DEBUG:

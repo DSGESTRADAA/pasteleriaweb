@@ -38,7 +38,7 @@ def admin_dashboard_view(request):
 def user_dashboard_view(request):
     # Productos (lógica de carrusel existente)
     productos = Producto.objects.all().filter(stock__gt=0)
-    productos_por_slide = 4
+    productos_por_slide = 3
     carrusel_slides = [
         productos[i:i + productos_por_slide]
         for i in range(0, len(productos), productos_por_slide)

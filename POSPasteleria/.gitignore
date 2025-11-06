@@ -13,3 +13,12 @@ db.sqlite3
 
 # OS files
 .DS_Store
+# Entornos Virtuales
+.venv/
+venv/
+env/
+
+# Archivos de caché y logs
+__pycache__/
+*.pyc
+*.log

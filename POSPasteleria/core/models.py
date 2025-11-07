@@ -144,3 +144,32 @@ class RespuestaPedido(models.Model):
 
     class Meta:
         verbose_name_plural = "Respuestas de Pedidos"
+
+
+class InteraccionCliente(models.Model):
+
+    # usuario_id INT (Relación: Un usuario puede tener muchas interacciones)
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='interacciones_cliente')
+
+    # fecha DATETIME
+    fecha = models.DateTimeField(default=timezone.now)
+
+    # tipo ENUM(...) (Usamos CharField con choices en Django)
+    TIPO_INTERACCION = [
+        ('vista_producto', 'Vista de Producto'),
+        ('solicitud_simple', 'Pedido Simple (en Stock)'),
+        ('solicitud_personalizada', 'Pedido Personalizado'),
+        ('compra_final', 'Pago/Compra Final'),
+    ]
+    tipo = models.CharField(max_length=30, choices=TIPO_INTERACCION, verbose_name="Tipo de Interacción")
+
+    # detalle TEXT
+    detalles = models.TextField(null=True, blank=True, verbose_name="Detalles/Datos del Producto")
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.get_tipo_display()} ({self.fecha.strftime('%Y-%m-%d')})"
+
+    class Meta:
+        verbose_name = "Interacción de Cliente"
+        verbose_name_plural = "Interacciones de Clientes"
+        ordering = ['-fecha']

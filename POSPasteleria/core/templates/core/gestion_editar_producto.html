@@ -1,0 +1,25 @@
+{% extends "core/base_admin.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>{{ titulo }}</h1>
+    <hr>
+
+    <form method="POST" enctype="multipart/form-data" action="{% url 'gestion_editar_producto' producto_id %}">
+    {% csrf_token %}
+
+    {% if form.instance.imagen %}
+        <p>Imagen actual:</p>
+        <img src="{{ form.instance.imagen.url }}" style="max-height: 150px; margin-bottom: 15px;">
+    {% endif %}
+
+    {{ form.as_p }}
+
+    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+    <a href="{% url 'gestion_inventario' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+</div>
+{% endblock %}

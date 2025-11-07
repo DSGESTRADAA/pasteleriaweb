@@ -2,13 +2,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.contrib import messages
+from datetime import timedelta
 from django.utils import timezone # ¡Importar timezone para comparar fechas!
-from .models import Producto, Pedido, DetallePedido, User, Promocion, RespuestaPedido # Asegúrate de importar Promocion
+from .models import Producto, Pedido, DetallePedido, User, Promocion, RespuestaPedido,InteraccionCliente # Asegúrate de importar Promocion
 from .forms import ProductoForm,CustomUserCreationForm, PromocionForm, PedidoForm,RespuestaPedidoForm # ¡Importar PromocionForm!
 from .decorators import admin_required # <-- NUEVA IMPORTACIÓN
 from .models import PerfilEmpleado # Asegúrate de importar tu modelo de perfil
 from django.views.decorators.http import require_http_methods # Útil para la vista POST
 from .forms import SolicitudSimpleForm
+from django.db.models import Count # Importar para contar interacciones
 import math
 # Importa otros módulos si es necesario (forms.py)
 
@@ -34,17 +36,23 @@ def admin_dashboard_view(request):
     }
     return render(request, 'admin_dashboard.html', context)
 
-@login_required
+
+@login_required(login_url='login')
 def user_dashboard_view(request):
-    # Productos (lógica de carrusel existente)
-    productos = Producto.objects.all().filter(stock__gt=0)
+    """Dashboard de usuario (cajero/empleado) limitado al POS."""
+
+    # 1. Lógica de Producto y Carrusel (se usa para el POS, mostrando items)
+    productos = Producto.objects.all().filter(stock__gt=0).order_by('nombre')
+
+    # Esta parte se usa si el POS tuviera carrusel, pero generalmente es lista:
     productos_por_slide = 3
     carrusel_slides = [
         productos[i:i + productos_por_slide]
         for i in range(0, len(productos), productos_por_slide)
     ]
 
-    # Nuevas: Obtener promociones activas
+    # 2. Obtener promociones activas (Generalmente NO necesario en el POS,
+    # pero si necesitas mostrarlas, mantenemos la lógica)
     today = timezone.now().date()
     promociones_activas = Promocion.objects.filter(
         activa=True,
@@ -52,10 +60,20 @@ def user_dashboard_view(request):
         fecha_fin__gte=today
     ).prefetch_related('productos').order_by('-fecha_inicio')
 
+
+    # 🚨 NUEVA LÓGICA: Recomendaciones (Moviendo la lógica de la vista original del cliente)
+    recomendaciones = []
+    if request.user.is_authenticated:
+        # Llama a la función que calcula las recomendaciones
+        recomendaciones = get_recommendations(request.user)
+
     context = {
         'titulo': 'Chispitas de Arcoíris',
+        'username': request.user.username,
         'carrusel_slides': carrusel_slides,
-        'promociones_activas': promociones_activas,  # Pasar las promos al contexto
+        'promociones_activas': promociones_activas,
+        'recomendaciones': recomendaciones,  # <-- VARIABLE AÑADIDA
+        # ... Aquí iría el resto del contexto del POS (cart_items, total_venta, etc.)
     }
     return render(request, 'user_dashboard.html', context)
 
@@ -390,10 +408,9 @@ def solicitar_pedido_simple_view(request, producto_id):
             if cantidad > producto.stock:
                 messages.error(request,
                                f"Solo quedan {producto.stock} unidades de {producto.nombre}. No se pueden solicitar {cantidad}.")
-                # Volver a renderizar el formulario con el error
                 return render(request, 'core/solicitar_simple.html', {'producto': producto, 'form': form})
 
-                # --- Lógica de Creación del Pedido (si todo es válido) ---
+            # --- Lógica de Creación del Pedido (si todo es válido) ---
             subtotal = producto.precio * cantidad
 
             try:
@@ -418,13 +435,21 @@ def solicitar_pedido_simple_view(request, producto_id):
                 producto.stock -= cantidad
                 producto.save()
 
+                # 4. REGISTRO DE INTERACCIÓN DE CONSUMO (MOVIDO AQUÍ)
+                InteraccionCliente.objects.create(
+                    usuario=request.user,
+                    tipo='solicitud_simple',
+                    detalles=f"Solicitó {cantidad}x {producto.nombre} (ID: {producto_id}, Subtotal: {subtotal})"
+                )
+
                 messages.success(request,
                                  f"Solicitud para {cantidad}x {producto.nombre} enviada para el {fecha_entrega}. Un administrador confirmará su pago.")
 
             except Exception as e:
                 messages.error(request, f"Error al procesar la solicitud: {e}")
+                # Si falla la creación, el redirect igual debe funcionar
 
-            return redirect('cliente_pedidos')
+            return redirect('cliente_pedidos')  # Redirige después de que el POST termina
 
     else:
         # GET request: Display the form
@@ -434,6 +459,8 @@ def solicitar_pedido_simple_view(request, producto_id):
         'producto': producto,
         'form': form,
     }
+
+    # ❌ ELIMINAMOS EL BLOQUE try/except EXTRAÑO AL FINAL
     return render(request, 'core/solicitar_simple.html', context)
 
 
@@ -464,3 +491,73 @@ def cliente_detalle_pedido_view(request, pedido_id):
         'titulo': f'Detalles del Pedido #{pedido_id}',
     }
     return render(request, 'core/cliente_detalle_pedido.html', context)
+
+
+@admin_required
+def gestion_inventario_view(request):
+    """Muestra la lista de todos los productos para que el admin pueda editarlos."""
+
+    productos = Producto.objects.all().order_by('nombre')
+
+    context = {
+        'productos': productos,
+        'titulo': 'Gestión de Inventario y Precios',
+    }
+    return render(request, 'core/gestion_inventario.html', context)
+
+
+@admin_required
+def gestion_editar_producto_view(request, producto_id):
+    """Permite al admin editar un producto existente."""
+
+    producto_instancia = get_object_or_404(Producto, id=producto_id)
+    titulo_pagina = f'Editar Producto: {producto_instancia.nombre}'
+
+    if request.method == 'POST':
+        # Usamos la instancia para EDITAR el objeto existente
+        form = ProductoForm(request.POST, request.FILES, instance=producto_instancia)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"🎉 Producto '{producto_instancia.nombre}' actualizado correctamente.")
+            return redirect('gestion_inventario')
+        else:
+            messages.error(request, "Hubo un error en los datos. Por favor, revisa el formulario.")
+
+    else:
+        # Petición GET: Cargar el formulario con los datos de la instancia
+        form = ProductoForm(instance=producto_instancia)
+
+    context = {
+        'form': form,
+        'titulo': titulo_pagina,
+        'producto_id': producto_id,
+    }
+    return render(request, 'core/gestion_editar_producto.html', context)
+
+
+from django.db.models import Count, Sum
+from .models import Producto, Pedido, DetallePedido
+from itertools import chain
+
+
+def get_recommendations(user):
+    """
+    Genera recomendaciones estrictas: solo los 4 productos con la mayor frecuencia
+    total de solicitud (popularidad), siempre que estén en stock.
+    """
+    RECOMMENDATION_LIMIT = 3
+
+    # 1. Obtener todos los productos que están en stock (stock__gt=0)
+    #    y anotarlos con su frecuencia total de solicitud (popularidad).
+    productos_populares = Producto.objects.filter(stock__gt=0).annotate(
+        # Contar cuántas veces aparece este producto en la tabla DetallePedido
+        frecuencia_solicitud=Count('detallepedido')
+    ).filter(
+        frecuencia_solicitud__gt=0  # CLAVE: Excluir productos que NUNCA han sido pedidos
+    ).order_by('-frecuencia_solicitud', 'nombre')[:RECOMMENDATION_LIMIT]  # Tomar solo los 4 primeros
+
+    # Nota: Ya no excluimos lo que el usuario compró, sino que asumimos
+    # que si lo compró mucho, es su favorito y debemos seguir recomendándolo.
+
+    return list(productos_populares)

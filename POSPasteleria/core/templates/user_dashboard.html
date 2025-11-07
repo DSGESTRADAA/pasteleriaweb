@@ -4,131 +4,132 @@
 {% block title %}Dashboard - Chispitas de Arcoíris{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <!-- Aquí puedes añadir elementos de la cabecera si es necesario -->
-    <div class="logo-container">
-        <!-- Si quieres el logo aquí: -->
-        <!-- <img src="{% static 'imagenes/Logo.png' %}" alt="Logo" class="logo-dashboard"> -->
-    </div>
-</div>
+<div class="container mt-5">
 
-<!-- 1. SECCIÓN DE OFERTAS Y PROMOCIONES (Arriba) -->
-<section class="promociones-activas my-5">
-    <div class="container">
-        {% if promociones_activas %}
-        <center><h2>🔥 ¡Ofertas del Día! 🔥</h2></center>
-        <div class="row justify-content-center">
-            {% for promo in promociones_activas %}
-            <div class="col-md-6 mb-4">
-                <div class="card text-white bg-danger mb-3 shadow-lg">
-                    <div class="card-header">{{ promo.titulo }}</div>
-                    <div class="card-body">
-                        <h4 class="card-title">{{ promo.descuento|floatformat:0 }}% de Descuento</h4>
-                        <p class="card-text">{{ promo.descripcion }}</p>
+    <div class="row">
 
-                        <div class="productos-en-promo">
-                            <small class="text-warning">Aplica a:</small>
-                            <ul class="list-unstyled">
-                                {% for producto in promo.productos.all %}
-                                <li>
-                                    ➡️ {{ producto.nombre }} (Original: ${{ producto.precio|floatformat:2 }})
-                                </li>
-                                {% empty %}
-                                <li>(No hay productos asociados a esta promoción)</li>
-                                {% endfor %}
-                            </ul>
+        <div class="col-md-8">
+
+            <section class="promociones-activas mb-4">
+                {% if promociones_activas %}
+                <center><h2>🔥 ¡Ofertas del Día! 🔥</h2></center>
+                <div class="row justify-content-center">
+                    {% for promo in promociones_activas %}
+                    <div class="col-md-12 mb-4">
+                        <div class="card text-white bg-danger shadow-lg">
+                            <div class="card-header">{{ promo.titulo }}</div>
+                            <div class="card-body">
+                                <h4 class="card-title">{{ promo.descuento|floatformat:0 }}% de Descuento</h4>
+                                <p class="card-text">{{ promo.descripcion }}</p>
+
+                                <div class="productos-en-promo">
+                                    <small class="text-warning">Aplica a:</small>
+                                    <ul class="list-unstyled">
+                                        {% for producto in promo.productos.all %}
+                                        <li>
+                                            ➡️ {{ producto.nombre }} (Original: ${{ producto.precio|floatformat:2 }})
+                                        </li>
+                                        {% empty %}
+                                        <li>(No hay productos asociados a esta promoción)</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                                <p class="card-text"><small>Válido hasta {{ promo.fecha_fin|date:"d M Y" }}</small></p>
+                            </div>
                         </div>
-
-                        <p class="card-text"><small>Válido hasta {{ promo.fecha_fin|date:"d M Y" }}</small></p>
                     </div>
+                    {% endfor %}
                 </div>
-            </div>
-            {% endfor %}
+                {% endif %}
+            </section>
+
+            <hr class="mb-4">
+
+            <section class="productos">
+                <center><h2>Nuestros Postres</h2></center>
+
+                <div id="productosCarrusel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="8000">
+                    <div class="carousel-inner">
+
+                        {% for slide in carrusel_slides %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                            <div class="row justify-content-center">
+
+                                {% for producto in slide %}
+                                <div class="col-md-4 col-sm-6 mb-4">
+                                    <div class="producto card shadow-sm h-100">
+                                        <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="card-img-top" style="height: 200px; object-fit: cover;">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">{{ producto.nombre }}</h5>
+                                            <p class="card-text text-success"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
+
+                                            <p class="card-text">
+                                                {% if producto.stock > 0 %}
+                                                    <span class="badge bg-success">Disponible: {{ producto.stock }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">Agotado</span>
+                                                {% endif %}
+                                            </p>
+
+                                            {% if producto.stock > 0 %}
+                                                <a href="{% url 'solicitar_pedido_simple' producto.id %}" class="btn btn-sm btn-outline-primary mt-2">Solicitar Pedido</a>
+                                            {% else %}
+                                                <a href="#" class="btn btn-sm btn-outline-secondary mt-2" disabled>No Disponible</a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="carousel-item active"><div class="container text-center py-5"><p>Aún no hay productos cargados.</p></div></div>
+                        {% endfor %}
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#productosCarrusel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon bg-dark rounded" aria-hidden="true"></span>
+                        <span class="visually-hidden">Anterior</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#productosCarrusel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon bg-dark rounded" aria-hidden="true"></span>
+                        <span class="visually-hidden">Siguiente</span>
+                    </button>
+                </div>
+            </section>
         </div>
-        <hr>
-        {% endif %}
-    </div>
-</section>
 
-<!-- 2. SECCIÓN DE PRODUCTOS EN CARRUSEL (Abajo) -->
-<section class="productos my-5">
-    <div class="container">
-        <center><h2>Nuestros Postres</h2></center>
+        <div class="col-md-4">
+            <section class="recomendaciones">
+                {% if recomendaciones %}
+                <div class="card border-warning shadow-lg">
+                    <div class="card-header bg-warning text-dark text-center">
+                        <h5 class="mb-0">✨ Recomendaciones para ti ✨</h5>
+                    </div>
+                    <div class="card-body">
+                        {% for producto in recomendaciones %}
+                        <div class="mb-3 p-2 border-bottom">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="me-3 rounded" style="width: 60px; height: 60px; object-fit: cover;">
+                                <div>
+                                    <h6 class="mb-1 text-warning">{{ producto.nombre }}</h6>
+                                    <p class="mb-0 text-success fw-bold">${{ producto.precio|floatformat:2 }}</p>
 
-        <div id="productosCarrusel" class="carousel slide" data-bs-ride="carousel">
-            <div class="carousel-inner">
-
-                <!--
-                  INICIO DE LA CORRECCIÓN:
-                  El bucle principal 'carrusel_slides' debe envolver el 'carousel-item'.
-                  El bucle 'producto in slide' debe ir DENTRO del 'row'.
-                -->
-
-                {% for slide in carrusel_slides %}
-                <div class="carousel-item {% if forloop.first %}active{% endif %}">
-
-                    <div class="row justify-content-center">
-
-                        <!-- Bucle interno: Itera sobre los productos de ESTE slide -->
-                        {% for producto in slide %}
-                        <div class="col-md-3 col-sm-6 mb-4">
-                            <div class="producto card shadow-sm h-100">
-                                <img src="{{ producto.imagen.url }}"
-                                     alt="{{ producto.nombre }}"
-                                     class="card-img-top"
-                                     style="height: 200px; object-fit: cover;">
-
-                                <div class="card-body text-center">
-                                    <h5 class="card-title">{{ producto.nombre }}</h5>
-                                    <p class="card-text text-muted mb-1">{{ producto.descripcion|truncatechars:50|default:"Pastelería fresca." }}</p>
-                                    <p class="card-text text-success"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
-
-                                    <!-- Lógica de Stock -->
-                                    <p class="card-text">
-                                        {% if producto.stock > 0 %}
-                                            <span class="badge bg-success">Disponible: {{ producto.stock }}</span>
-                                        {% else %}
-                                            <span class="badge bg-danger">Agotado</span>
-                                        {% endif %}
-                                    </p>
-
-                                    <!-- Lógica de Botón de Pedido Simple -->
                                     {% if producto.stock > 0 %}
-                                        <a href="{% url 'solicitar_pedido_simple' producto.id %}" class="btn btn-sm btn-outline-primary mt-2">
-                                            Solicitar Pedido
-                                        </a>
+                                        <a href="{% url 'solicitar_pedido_simple' producto.id %}" class="btn btn-sm btn-outline-warning mt-1">¡Pedir!</a>
                                     {% else %}
-                                        <a href="#" class="btn btn-sm btn-outline-secondary mt-2" disabled>No Disponible</a>
+                                        <span class="badge bg-danger mt-1">Agotado</span>
                                     {% endif %}
                                 </div>
                             </div>
                         </div>
-                        {% endfor %} <!-- Fin del bucle interno (producto in slide) -->
-
-                    </div> <!-- Fin del .row -->
-                </div> <!-- Fin del .carousel-item -->
-
-                {% empty %}
-                <!-- Caso vacío (si no hay slides) -->
-                <div class="carousel-item active">
-                    <div class="container text-center py-5">
-                        <p>Aún no hay productos cargados en la base de datos.</p>
+                        {% endfor %}
                     </div>
                 </div>
-                {% endfor %} <!-- Fin del bucle principal (slide in carrusel_slides) -->
-
-            </div>
-
-            <!-- Controles del Carrusel (Flechas) -->
-            <button class="carousel-control-prev" type="button" data-bs-target="#productosCarrusel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon bg-dark rounded" aria-hidden="true"></span>
-                <span class="visually-hidden">Anterior</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#productosCarrusel" data-bs-slide="next">
-                <span class="carousel-control-next-icon bg-dark rounded" aria-hidden="true"></span>
-                <span class="visually-hidden">Siguiente</span>
-            </button>
+                {% else %}
+                    <div class="alert alert-info text-center">Inicia sesión o haz un pedido para recibir recomendaciones.</div>
+                {% endif %}
+            </section>
         </div>
-    </div>
-</section>
-{% endblock %} <!-- ÚNICO Y FINAL CIERRE DE BLOQUE -->
+
+    </div> </div>
+{% endblock %}

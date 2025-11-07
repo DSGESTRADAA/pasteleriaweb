@@ -21,8 +21,9 @@
         <div class="header-left">
             <h1 class="titulo">Chispitas <span class="resalte">de Arcoíris</span></h1>
 
+            <a href="{% url 'user_dashboard' %}" class="nav-item">🏠 Home</a>
             <a href="{% url 'pedidos' %}" class="nav-item">📦 Mis Pedidos</a>
-            <li class="nav-item"><a class="nav-link" href="{% url 'hacer_pedido_personalizado' %}">🎂 Pedido Personalizado</a></li>
+            <a href="{% url 'hacer_pedido_personalizado' %}" class="nav-item">🎂 Pedido Personalizado</a>
             <a href="{% url 'login' %}" class="nav-item">Log out</a>
             </nav>
         </div>
@@ -41,6 +42,9 @@
 </footer>
 </center>
 {% endif %}
-
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous">
+</script>
 </body>
 </html>

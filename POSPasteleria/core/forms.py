@@ -96,28 +96,30 @@ class CustomUserCreationForm(UserCreationForm):
         return user
 
 class ProductoForm(forms.ModelForm):
-        """
-        Formulario basado en el modelo Producto para añadir/actualizar productos.
-        """
-
-        class Meta:
-            model = Producto
-            # Define los campos que deseas incluir en el formulario
-            fields = [
-                'nombre',
-                'descripcion',
-                'precio',
-                'tamano',
-                'stock',
-                'imagen'
-            ]
-            # Opcional: Personalizar etiquetas
-            labels = {
-                'nombre': 'Nombre del Producto',
-                'tamano': 'Tamaño/Porciones',
-                'stock': 'Stock Inicial',
-                'imagen': 'Foto del Producto',
-            }
+    """
+    Formulario para la creación y edición del modelo Producto.
+    Incluye todos los campos, incluyendo la imagen.
+    """
+    class Meta:
+        model = Producto
+        # Incluir todos los campos necesarios para la edición
+        fields = [
+            'nombre',
+            'descripcion',
+            'precio',
+            'tamano',
+            'stock',
+            'imagen'
+        ]
+        # Opcional: Personalizar etiquetas si es necesario
+        labels = {
+            'nombre': 'Nombre del Producto',
+            'descripcion': 'Descripción',
+            'precio': 'Precio ($)',
+            'tamano': 'Tamaño',
+            'stock': 'Stock Actual',
+            'imagen': 'Foto del Producto',
+        }
 
 class PromocionForm(forms.ModelForm):
     class Meta:

@@ -61,6 +61,7 @@
                                         <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="card-img-top" style="height: 200px; object-fit: cover;">
                                         <div class="card-body text-center">
                                             <h5 class="card-title">{{ producto.nombre }}</h5>
+                                            <p class="card-text text-muted mb-1 small">{{ producto.descripcion|truncatechars:40|default:"Pastelería fresca." }}</p>
                                             <p class="card-text text-success"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
 
                                             <p class="card-text">

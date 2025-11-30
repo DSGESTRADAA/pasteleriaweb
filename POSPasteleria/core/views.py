@@ -3,6 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.contrib import messages
 from datetime import timedelta
+from django.http import JsonResponse
+from .models import Producto, Pedido, DetallePedido, User, Promocion, RespuestaPedido, InteraccionCliente, PerfilEmpleado, FAQ
 from django.utils import timezone # ¡Importar timezone para comparar fechas!
 from .models import Producto, Pedido, DetallePedido, User, Promocion, RespuestaPedido,InteraccionCliente # Asegúrate de importar Promocion
 from .forms import ProductoForm,CustomUserCreationForm, PromocionForm, PedidoForm,RespuestaPedidoForm # ¡Importar PromocionForm!
@@ -12,6 +14,27 @@ from django.views.decorators.http import require_http_methods # Útil para la vi
 from .forms import SolicitudSimpleForm
 from django.db.models import Count # Importar para contar interacciones
 import math
+from django.http import JsonResponse
+from django.core.cache import cache
+import time
+from django.http import JsonResponse
+from django.core.cache import cache
+import time
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
+from .models import Producto
+from .cart import Cart
+from .forms import CartAddProductForm  # Crearemos esto en el paso 4
+from django.http import JsonResponse, HttpResponseRedirect
+from django.urls import reverse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+from .cart import Cart
+from .models import Producto
+from django.urls import reverse
+from django.http import HttpResponseRedirect
+
 # Importa otros módulos si es necesario (forms.py)
 
 # La vista de control que actúa como router
@@ -42,7 +65,7 @@ def user_dashboard_view(request):
     """Dashboard de usuario (cajero/empleado) limitado al POS."""
 
     # 1. Lógica de Producto y Carrusel (se usa para el POS, mostrando items)
-    productos = Producto.objects.all().filter(stock__gt=0).order_by('nombre')
+    productos = Producto.objects.all().filter(inventario__gt=0).order_by('nombre')
 
     # Esta parte se usa si el POS tuviera carrusel, pero generalmente es lista:
     productos_por_slide = 3
@@ -393,8 +416,8 @@ def admin_cambiar_estado_pedido_view(request, pedido_id):
 def solicitar_pedido_simple_view(request, producto_id):
     producto = get_object_or_404(Producto, id=producto_id)
 
-    # Si no hay stock para al menos 1 unidad, redirigir inmediatamente
-    if producto.stock <= 0:
+    # Si no hay inventario para al menos 1 unidad, redirigir inmediatamente
+    if producto.inventario <= 0:
         messages.error(request, f"Lo sentimos, {producto.nombre} está agotado.")
         return redirect('dashboard')
 
@@ -404,10 +427,10 @@ def solicitar_pedido_simple_view(request, producto_id):
             cantidad = form.cleaned_data['cantidad']
             fecha_entrega = form.cleaned_data['fecha_entrega']
 
-            # Re-verificar stock con la cantidad solicitada
-            if cantidad > producto.stock:
+            # Re-verificar inventario con la cantidad solicitada
+            if cantidad > producto.inventario:
                 messages.error(request,
-                               f"Solo quedan {producto.stock} unidades de {producto.nombre}. No se pueden solicitar {cantidad}.")
+                               f"Solo quedan {producto.inventario} unidades de {producto.nombre}. No se pueden solicitar {cantidad}.")
                 return render(request, 'core/solicitar_simple.html', {'producto': producto, 'form': form})
 
             # --- Lógica de Creación del Pedido (si todo es válido) ---
@@ -431,8 +454,8 @@ def solicitar_pedido_simple_view(request, producto_id):
                     subtotal=subtotal
                 )
 
-                # 3. Descontar el stock
-                producto.stock -= cantidad
+                # 3. Descontar el inventario
+                producto.inventario -= cantidad
                 producto.save()
 
                 # 4. REGISTRO DE INTERACCIÓN DE CONSUMO (MOVIDO AQUÍ)
@@ -544,13 +567,13 @@ from itertools import chain
 def get_recommendations(user):
     """
     Genera recomendaciones estrictas: solo los 4 productos con la mayor frecuencia
-    total de solicitud (popularidad), siempre que estén en stock.
+    total de solicitud (popularidad), siempre que estén en inventario.
     """
     RECOMMENDATION_LIMIT = 3
 
-    # 1. Obtener todos los productos que están en stock (stock__gt=0)
+    # 1. Obtener todos los productos que están en inventario (inventario__gt=0)
     #    y anotarlos con su frecuencia total de solicitud (popularidad).
-    productos_populares = Producto.objects.filter(stock__gt=0).annotate(
+    productos_populares = Producto.objects.filter(inventario__gt=0).annotate(
         # Contar cuántas veces aparece este producto en la tabla DetallePedido
         frecuencia_solicitud=Count('detallepedido')
     ).filter(
@@ -561,3 +584,205 @@ def get_recommendations(user):
     # que si lo compró mucho, es su favorito y debemos seguir recomendándolo.
 
     return list(productos_populares)
+
+def obtener_faqs(request):
+    faqs = FAQ.objects.all().values("id", "pregunta", "respuesta")
+    return JsonResponse(list(faqs), safe=False)
+
+# core/views.py
+
+@admin_required(redirect_url='login') # O @login_required si prefieres
+def admin_chat_view(request):
+    context = {
+        'titulo': 'Panel de Soporte en Vivo',
+    }
+    return render(request, 'core/admin_chat.html', context)
+
+
+# 1. ENVIAR MENSAJE (Guarda en memoria temporal)
+def api_send_message(request):
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        message = request.POST.get('message')
+        sender = request.POST.get('sender')  # 'user' o 'admin'
+        target_id = request.POST.get('target_id')  # Para quién es (si es admin)
+
+        if not user_id or not message:
+            return JsonResponse({'status': 'error'})
+
+        # Definir la ID de la conversación
+        # Si escribe el admin, la conversación es el target_id (el cliente)
+        chat_room_id = target_id if sender == 'admin' else user_id
+
+        # Obtener historial actual de caché
+        cache_key = f"chat_{chat_room_id}"
+        mensajes = cache.get(cache_key, [])
+
+        # Agregar nuevo mensaje
+        nuevo_msg = {
+            'sender': sender,
+            'message': message,
+            'timestamp': time.time()
+        }
+        mensajes.append(nuevo_msg)
+
+        # Guardar en caché (Expira en 10 mins si nadie habla)
+        cache.set(cache_key, mensajes, timeout=600)
+
+        # Si es un cliente nuevo, agregarlo a la lista de activos
+        if sender == 'user':
+            active_users = cache.get('active_chat_users', [])
+            if chat_room_id not in active_users:
+                active_users.append(chat_room_id)
+                cache.set('active_chat_users', active_users, timeout=600)
+
+        return JsonResponse({'status': 'ok'})
+
+
+# 2. OBTENER MENSAJES (El navegador consultará esto cada 2 seg)
+def api_get_messages(request):
+    user_id = request.GET.get('user_id')
+
+    # Si soy Admin, quiero ver la lista de usuarios O los mensajes de uno específico
+    if user_id == 'admin_panel':
+        active_users = cache.get('active_chat_users', [])
+        target_user = request.GET.get('target_user')
+
+        chat_data = []
+        if target_user:
+            chat_data = cache.get(f"chat_{target_user}", [])
+
+        return JsonResponse({
+            'active_users': active_users,
+            'messages': chat_data
+        })
+
+    # Si soy Cliente, solo quiero mis mensajes
+    else:
+        chat_data = cache.get(f"chat_{user_id}", [])
+        return JsonResponse({'messages': chat_data})
+
+
+# core/views.py
+# core/views.py
+
+# core/views.py
+
+@require_POST
+def cart_add(request, producto_id):
+    cart = Cart(request)
+    producto = get_object_or_404(Producto, id=producto_id)
+    cantidad_nueva = int(request.POST.get('cantidad', 1))
+
+    # --- LÓGICA DE INVENTARIO ---
+    product_id_str = str(producto.id)
+    # Obtenemos cuánto tiene ya en el carrito (si no tiene, es 0)
+    cantidad_en_carrito = cart.cart.get(product_id_str, {}).get('cantidad', 0)
+    cantidad_total_deseada = cantidad_en_carrito + cantidad_nueva
+
+    # Detectar si es AJAX (Petición silenciosa del JavaScript)
+    # Verificamos tanto en headers (Django moderno) como en META (compatibilidad)
+    es_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or \
+              request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+    # 1. SI SUPERA INVENTARIO
+    if cantidad_total_deseada > producto.inventario:
+        # A. Si es AJAX, devolvemos error JSON para que el JS pueda mostrar alerta
+        if es_ajax:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Solo quedan {producto.inventario} disponibles.'
+            })
+
+        # B. Si no es AJAX, redirigimos al producto (Plan B)
+        # Obtenemos la URL anterior y le quitamos el ancla vieja si la tiene
+        previous_url = request.META.get('HTTP_REFERER', reverse('user_dashboard')).split('#')[0]
+        return HttpResponseRedirect(f"{previous_url}#producto-{producto.id}")
+
+    # --- 2. AGREGAR (Si hay stock) ---
+    cart.add(producto=producto, cantidad=cantidad_nueva)
+
+    # A. Si es AJAX (Éxito silencioso)
+    if es_ajax:
+        return JsonResponse({
+            'status': 'ok',
+            'cart_total': len(cart)
+        })
+
+    # B. Si no es AJAX (Redirección al ancla)
+    previous_url = request.META.get('HTTP_REFERER', reverse('user_dashboard')).split('#')[0]
+    return HttpResponseRedirect(f"{previous_url}#producto-{producto.id}")
+
+def cart_remove(request, producto_id):
+    cart = Cart(request)
+    producto = get_object_or_404(Producto, id=producto_id)
+    cart.remove(producto)
+    return redirect('detalles_carrito')
+
+
+def detalles_carrito(request):
+    cart = Cart(request)
+    return render(request, 'core/detalles_carrito.html', {'cart': cart})
+
+
+# core/views.py
+
+@login_required(login_url='login')
+def procesar_compra_view(request):
+    cart = Cart(request)
+
+    # Si el carrito está vacío, regresar
+    if len(cart) == 0:
+        messages.warning(request, "Tu carrito está vacío.")
+        return redirect('user_dashboard')
+
+    try:
+        with transaction.atomic():
+            # 1. Crear el Pedido General
+            nuevo_pedido = Pedido.objects.create(
+                usuario=request.user,
+                estado='pendiente',  # O 'confirmado' según tu flujo
+                precio_establecido=cart.get_total_price(),
+                # fecha_entrega... (Podrías pedirla en un formulario previo si es obligatoria)
+            )
+
+            # 2. Iterar sobre el carrito para crear detalles y RESTAR INVENTARIO
+            for item in cart:
+                producto = item['producto']
+                cantidad = item['cantidad']
+                precio = item['precio']
+
+                # --- VALIDACIÓN FINAL DE SEGURIDAD ---
+                # (Por si alguien compró el último pastel mientras este usuario navegaba)
+                # Recargamos el producto de la BD para ver el stock real actual
+                producto.refresh_from_db()
+
+                if producto.inventario < cantidad:
+                    # Si ya no hay stock, cancelamos todo (rollback)
+                    raise Exception(f"Lo sentimos, el producto '{producto.nombre}' se acaba de agotar.")
+
+                # Crear Detalle
+                DetallePedido.objects.create(
+                    pedido=nuevo_pedido,
+                    producto=producto,
+                    cantidad=cantidad,
+                    precio_unitario=precio,
+                    subtotal=precio * cantidad
+                )
+
+                # --- AQUÍ BAJA EL INVENTARIO REALMENTE ---
+                producto.inventario -= cantidad
+                producto.save()
+
+            # 3. Vaciar el carrito de la sesión
+            cart.clear()
+
+            # 4. Registrar Interacción (Opcional)
+            # InteraccionCliente.objects.create(...)
+
+            messages.success(request, f"¡Pedido #{nuevo_pedido.id} confirmado con éxito! Gracias por tu compra.")
+            return redirect('cliente_pedidos')
+
+    except Exception as e:
+        messages.error(request, f"Error al procesar la compra: {str(e)}")
+        return redirect('detalles_carrito')

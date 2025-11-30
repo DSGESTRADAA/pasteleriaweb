@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Tu Carrito - Chispitas de Arcoíris{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h2 class="h4 mb-0">🛒 Tu Carrito de Compras</h2>
+        </div>
+        <div class="card-body">
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-center">Cantidad</th>
+                            <th class="text-center">Precio Unitario</th>
+                            <th class="text-center">Subtotal</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart %}
+                            {% with producto=item.producto %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if producto.imagen %}
+                                            <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-0">{{ producto.nombre }}</h6>
+                                            <small class="text-muted">{{ producto.categoria }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary fs-6">{{ item.cantidad }}</span>
+                                </td>
+                                <td class="text-center">${{ item.precio }}</td>
+                                <td class="text-center fw-bold text-success">${{ item.total_precio }}</td>
+                                <td class="text-center">
+                                    <a href="{% url 'cart_remove' producto.id %}" class="btn btn-sm btn-outline-danger" title="Eliminar del carrito">
+                                        🗑️
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endwith %}
+                        {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <h4 class="text-muted">Tu carrito está vacío 😢</h4>
+                                    <a href="{% url 'user_dashboard' %}" class="btn btn-primary mt-3">Ir a ver postres</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if cart|length > 0 %}
+            <div class="row mt-4 border-top pt-4">
+                <div class="col-md-6">
+                    <a href="{% url 'user_dashboard' %}" class="btn btn-outline-secondary">
+                        ⬅ Seguir Comprando
+                    </a>
+                </div>
+                <div class="col-md-6 text-end">
+                    <h3 class="mb-3">Total a Pagar: <span class="text-success">${{ cart.get_total_price }}</span></h3>
+                    
+                    <a href="{% url 'procesar_compra' %}" class="btn btn-success btn-lg shadow-sm" onclick="return confirm('¿Estás seguro de finalizar tu pedido?');">
+                        ✅ Proceder al Pago (Confirmar)
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

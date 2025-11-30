@@ -22,3 +22,8 @@ env/
 __pycache__/
 *.pyc
 *.log
+
+# Cache del chat
+django_cache/
+*.pyc
+__pycache__/

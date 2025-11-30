@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>{{ title }} | POS Pastelería</title>
     <style>
-        /* Estilos básicos heredados del login (ajustar si es necesario) */
+        /* --- ESTILOS ORIGINALES DE TU DASHBOARD --- */
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Playfair+Display:wght@700&display=swap');
 
         :root {
@@ -52,7 +52,7 @@
 
         .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* 2 o 3 columnas flexibles */
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 30px;
             padding: 40px;
         }
@@ -123,6 +123,7 @@
                 <li><a href="{% url 'gestion_inventario' %}" class="btn btn-sm btn-primary">Editar</a></li>
                 <li><a href="#">Gestionar Categorías de Producto</a></li>
                 <li class="list-group-item"><a href="{% url 'gestion_promocion' %}" class="btn btn-link p-0 text-decoration-none">**Ofertas y Promociones** (Dar de alta promoción)</a></li>
+            </ul>
         </div>
 
         <div class="card">
@@ -135,6 +136,191 @@
         </div>
 
     </div>
+
+    <div id="admin-chat-btn" style="position: fixed; bottom: 20px; right: 20px; background: #0d6efd; color: white; padding: 15px 20px; border-radius: 50px; cursor: pointer; font-weight: bold; z-index: 9999; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-family: sans-serif;">
+        <span>💬 Soporte Activo</span>
+        <span id="notif-badge" style="background: red; border-radius: 50%; padding: 2px 6px; font-size: 0.8em; display: none;">!</span>
+    </div>
+
+    <div id="admin-chat-window" style="position: fixed; bottom: 80px; right: 20px; width: 600px; height: 500px; background: white; border-radius: 10px; box-shadow: 0 5px 25px rgba(0,0,0,0.2); display: none; z-index: 9999; overflow: hidden; border: 1px solid #ccc; font-family: sans-serif;">
+
+        {% csrf_token %}
+
+        <div style="background: #212529; color: white; padding: 10px 15px; display: flex; justify-content: space-between;">
+            <span>Panel de Control (En Vivo)</span>
+            <span id="close-chat" style="cursor: pointer;">✖</span>
+        </div>
+
+        <div style="display: flex; height: calc(100% - 45px);">
+            <div id="user-list" style="width: 30%; background: #f8f9fa; border-right: 1px solid #ddd; overflow-y: auto; padding-top:10px;">
+                <div style="text-align: center; font-size: 0.8em; color: #666; padding-bottom: 5px;">Clientes Activos</div>
+            </div>
+
+            <div style="width: 70%; display: flex; flex-direction: column; background: white;">
+                <div id="current-chat-header" style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; color: #0d6efd;">Selecciona un usuario</div>
+
+                <div id="msg-area" style="flex: 1; padding: 15px; overflow-y: auto; background: #fff;"></div>
+
+                <div style="padding: 10px; border-top: 1px solid #eee; display: flex;">
+                    <input type="text" id="admin-input" placeholder="Responde aquí..." style="flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" disabled>
+                    <button id="admin-send" style="margin-left: 5px; padding: 8px 15px; background: #198754; color: white; border: none; border-radius: 4px; cursor: pointer;" disabled>➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const btn = document.getElementById('admin-chat-btn');
+        const win = document.getElementById('admin-chat-window');
+        const close = document.getElementById('close-chat');
+        const userListDiv = document.getElementById('user-list');
+        const msgArea = document.getElementById('msg-area');
+        const input = document.getElementById('admin-input');
+        const sendBtn = document.getElementById('admin-send');
+        const headerChat = document.getElementById('current-chat-header');
+        const badge = document.getElementById('notif-badge');
+
+        let selectedUser = null;
+        let knownUsers = [];
+        let lastMsgCount = 0;
+
+        // Abrir/Cerrar ventana
+        btn.onclick = () => {
+            win.style.display = 'block';
+            badge.style.display = 'none'; // Ocultar alerta al abrir
+            checkUpdates();
+        };
+        close.onclick = () => win.style.display = 'none';
+
+        // --- POLLING: Revisar servidor cada 3 segundos ---
+        function checkUpdates() {
+            // NOTA: Seguimos revisando aunque esté cerrado para mostrar el punto rojo de notificación
+            let url = '/api/chat/get/?user_id=admin_panel';
+            if (selectedUser) {
+                url += `&target_user=${selectedUser}`;
+            }
+
+            fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                // 1. Actualizar Lista de Usuarios
+                updateUserList(data.active_users);
+
+                // 2. Si tengo un chat abierto, actualizar mensajes
+                if (selectedUser && data.messages) {
+                    if (data.messages.length > lastMsgCount) {
+                        renderChat(data.messages);
+                        lastMsgCount = data.messages.length;
+                    }
+                }
+            })
+            .catch(err => console.error("Error polling admin:", err));
+        }
+
+        setInterval(checkUpdates, 3000);
+
+        // --- Actualizar Lista Visual de Usuarios ---
+        function updateUserList(users) {
+            // Verificar si hay usuarios nuevos para notificación
+            if (users.length > knownUsers.length && win.style.display === 'none') {
+                badge.style.display = 'inline-block';
+            }
+
+            if (JSON.stringify(users) === JSON.stringify(knownUsers)) return;
+
+            knownUsers = users;
+            // Limpiar lista (manteniendo el título)
+            while (userListDiv.children.length > 1) {
+                userListDiv.removeChild(userListDiv.lastChild);
+            }
+
+            users.forEach(userID => {
+                const div = document.createElement('div');
+                div.textContent = "👤 " + userID;
+                div.style.padding = "10px";
+                div.style.cursor = "pointer";
+                div.style.borderBottom = "1px solid #eee";
+                div.style.fontSize = "0.9em";
+
+                if (userID === selectedUser) div.style.background = "#cfe2ff";
+
+                div.onclick = () => selectUser(userID);
+                userListDiv.appendChild(div);
+            });
+        }
+
+        // --- Seleccionar Usuario ---
+        function selectUser(userID) {
+            selectedUser = userID;
+            lastMsgCount = 0;
+            headerChat.textContent = "Chat con: " + userID;
+            input.disabled = false;
+            sendBtn.disabled = false;
+
+            // Forzar actualización inmediata
+            checkUpdates();
+
+            // Estilos visuales de selección
+            Array.from(userListDiv.children).forEach(child => {
+                 if(child !== userListDiv.firstElementChild) child.style.background = "transparent";
+            });
+        }
+
+        // --- Dibujar Mensajes en Pantalla ---
+        function renderChat(messages) {
+            msgArea.innerHTML = "";
+            messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.style.padding = "8px 12px";
+                div.style.borderRadius = "10px";
+                div.style.marginBottom = "5px";
+                div.style.maxWidth = "80%";
+                div.style.wordWrap = "break-word";
+                div.style.fontSize = "0.9em";
+
+                if (msg.sender === 'user') {
+                    div.style.background = "#f1f0f0";
+                    div.style.alignSelf = "flex-start";
+                    div.innerHTML = `<strong>👤 Cliente:</strong><br>${msg.message}`;
+                } else {
+                    div.style.background = "#0d6efd";
+                    div.style.color = "white";
+                    div.style.alignSelf = "flex-end";
+                    div.style.marginLeft = "auto";
+                    div.textContent = msg.message;
+                }
+                msgArea.appendChild(div);
+            });
+            msgArea.scrollTop = msgArea.scrollHeight;
+        }
+
+        // --- Enviar Respuesta ---
+        sendBtn.onclick = () => {
+            const text = input.value.trim();
+            if (!text || !selectedUser) return;
+
+            const formData = new FormData();
+            formData.append('user_id', 'admin');
+            formData.append('target_id', selectedUser);
+            formData.append('sender', 'admin');
+            formData.append('message', text);
+
+            // Obtener el token CSRF que pusimos en el HTML
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            const token = csrfInput ? csrfInput.value : '';
+
+            fetch('/api/chat/send/', {
+                method: 'POST',
+                headers: {'X-CSRFToken': token},
+                body: formData
+            }).then(() => {
+                input.value = "";
+                checkUpdates(); // Ver mi mensaje enviado inmediatamente
+            });
+        };
+
+        input.addEventListener("keyup", (e) => { if (e.key === "Enter") sendBtn.click(); });
+    </script>
 
 </body>
 </html>

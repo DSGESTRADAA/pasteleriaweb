@@ -5,6 +5,7 @@ from django.views.generic.base import RedirectView  # Importación para la redir
 from core import views  # Importamos las vistas de la app 'core'
 from django.conf import settings # ¡Necesitas importar settings!
 from django.conf.urls.static import static # ¡Necesitas importar static!
+from core import views
 
 urlpatterns = [
     # 1. Redirección de la Raíz: Envía '/' directamente a '/login/'
@@ -32,6 +33,13 @@ urlpatterns = [
     path('gestion/calendario/', views.admin_calendario_produccion_view, name='admin_calendario_produccion'),
     path('gestion/cambiar-estado/<int:pedido_id>/', views.admin_cambiar_estado_pedido_view,name='admin_cambiar_estado_pedido'),
     path('pedido/solicitar-simple/<int:producto_id>/', views.solicitar_pedido_simple_view, name='solicitar_pedido_simple'),
+    path('api/faqs/', views.obtener_faqs, name='obtener_faqs'),
+    path('api/chat/send/', views.api_send_message, name='api_chat_send'),
+    path('api/chat/get/', views.api_get_messages, name='api_chat_get'),
+    path('cart/add/<int:producto_id>/', views.cart_add, name='cart_add'),
+    path('cart/remove/<int:producto_id>/', views.cart_remove, name='cart_remove'),
+    path('cart/', views.detalles_carrito, name='detalles_carrito'),
+    path('procesar-compra/', views.procesar_compra_view, name='procesar_compra'),
 ]
 
 if settings.DEBUG:

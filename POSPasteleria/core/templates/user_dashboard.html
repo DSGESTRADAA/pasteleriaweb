@@ -57,26 +57,40 @@
 
                                 {% for producto in slide %}
                                 <div class="col-md-4 col-sm-6 mb-4">
-                                    <div class="producto card shadow-sm h-100">
+                                    <div class="producto card shadow-sm h-100" id="producto-{{ producto.id }}">
                                         <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="card-img-top" style="height: 200px; object-fit: cover;">
-                                        <div class="card-body text-center">
-                                            <h5 class="card-title">{{ producto.nombre }}</h5>
-                                            <p class="card-text text-muted mb-1 small">{{ producto.descripcion|truncatechars:40|default:"Pastelería fresca." }}</p>
-                                            <p class="card-text text-success"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
 
-                                            <p class="card-text">
-                                                {% if producto.stock > 0 %}
-                                                    <span class="badge bg-success">Disponible: {{ producto.stock }}</span>
+                                        <div class="card-body text-center d-flex flex-column justify-content-between">
+                                            <div>
+                                                <h5 class="card-title">{{ producto.nombre }}</h5>
+                                                <p class="card-text text-muted mb-1 small">{{ producto.descripcion|truncatechars:40|default:"Pastelería fresca." }}</p>
+                                                <p class="card-text text-success fs-5"><strong>${{ producto.precio|floatformat:2 }}</strong></p>
+
+                                                <p class="card-text">
+                                                    {% if producto.inventario > 0 %}
+                                                        <span class="badge bg-success">Disponible: {{ producto.inventario }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Agotado</span>
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+
+                                            <div class="mt-2">
+                                                {% if producto.inventario > 0 %}
+                                                    <form action="{% url 'cart_add' producto.id %}" method="post">
+                                                        {% csrf_token %}
+                                                        <div class="input-group input-group-sm justify-content-center">
+                                                            <input type="number" name="cantidad" value="1" min="1" max="{{ producto.inventario }}" class="form-control text-center" style="max-width: 60px;">
+                                                            <button type="submit" class="btn btn-primary">🛒 Agregar</button>
+                                                        </div>
+                                                    </form>
+
+                                                    <a href="{% url 'solicitar_pedido_simple' producto.id %}" class="d-block mt-1 small text-muted text-decoration-none">⚡ Compra Rápida</a>
                                                 {% else %}
-                                                    <span class="badge bg-danger">Agotado</span>
+                                                    <button class="btn btn-sm btn-secondary w-100" disabled>No Disponible</button>
                                                 {% endif %}
-                                            </p>
+                                            </div>
 
-                                            {% if producto.stock > 0 %}
-                                                <a href="{% url 'solicitar_pedido_simple' producto.id %}" class="btn btn-sm btn-outline-primary mt-2">Solicitar Pedido</a>
-                                            {% else %}
-                                                <a href="#" class="btn btn-sm btn-outline-secondary mt-2" disabled>No Disponible</a>
-                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -87,13 +101,12 @@
                         <div class="carousel-item active"><div class="container text-center py-5"><p>Aún no hay productos cargados.</p></div></div>
                         {% endfor %}
                     </div>
-                    <button class="carousel-control-prev" type="button" data-bs-target="#productosCarrusel" data-bs-slide="prev">
-                        <span class="carousel-control-prev-icon bg-dark rounded" aria-hidden="true"></span>
-                        <span class="visually-hidden">Anterior</span>
+
+                    <button class="carousel-control-prev" type="button" data-bs-target="#productosCarrusel" data-bs-slide="prev" style="width: 5%;">
+                        <span class="carousel-control-prev-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
                     </button>
-                    <button class="carousel-control-next" type="button" data-bs-target="#productosCarrusel" data-bs-slide="next">
-                        <span class="carousel-control-next-icon bg-dark rounded" aria-hidden="true"></span>
-                        <span class="visually-hidden">Siguiente</span>
+                    <button class="carousel-control-next" type="button" data-bs-target="#productosCarrusel" data-bs-slide="next" style="width: 5%;">
+                        <span class="carousel-control-next-icon bg-dark rounded-circle p-3" aria-hidden="true"></span>
                     </button>
                 </div>
             </section>
@@ -102,7 +115,7 @@
         <div class="col-md-4">
             <section class="recomendaciones">
                 {% if recomendaciones %}
-                <div class="card border-warning shadow-lg">
+                <div class="card border-warning shadow-lg sticky-top" style="top: 20px; z-index: 1;">
                     <div class="card-header bg-warning text-dark text-center">
                         <h5 class="mb-0">✨ Recomendaciones para ti ✨</h5>
                     </div>
@@ -111,12 +124,15 @@
                         <div class="mb-3 p-2 border-bottom">
                             <div class="d-flex align-items-center">
                                 <img src="{{ producto.imagen.url }}" alt="{{ producto.nombre }}" class="me-3 rounded" style="width: 60px; height: 60px; object-fit: cover;">
-                                <div>
+                                <div class="w-100">
                                     <h6 class="mb-1 text-warning">{{ producto.nombre }}</h6>
                                     <p class="mb-0 text-success fw-bold">${{ producto.precio|floatformat:2 }}</p>
 
-                                    {% if producto.stock > 0 %}
-                                        <a href="{% url 'solicitar_pedido_simple' producto.id %}" class="btn btn-sm btn-outline-warning mt-1">¡Pedir!</a>
+                                    {% if producto.inventario > 0 %}
+                                        <form action="{% url 'cart_add' producto.id %}" method="post" class="mt-1">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="cantidad" value="1"> <button type="submit" class="btn btn-sm btn-outline-warning w-100">🛒 Al Carrito</button>
+                                        </form>
                                     {% else %}
                                         <span class="badge bg-danger mt-1">Agotado</span>
                                     {% endif %}
@@ -132,5 +148,7 @@
             </section>
         </div>
 
-    </div> </div>
+    </div>
+</div>
+
 {% endblock %}

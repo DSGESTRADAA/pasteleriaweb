@@ -98,27 +98,27 @@ class CustomUserCreationForm(UserCreationForm):
 class ProductoForm(forms.ModelForm):
     """
     Formulario para la creación y edición del modelo Producto.
-    Incluye todos los campos, incluyendo la imagen.
+    Incluye todos los campos existentes en el modelo.
     """
     class Meta:
         model = Producto
-        # Incluir todos los campos necesarios para la edición
         fields = [
             'nombre',
             'descripcion',
             'precio',
-            'tamano',
-            'stock',
+            'inventario',   # este es tu "inventario" real
+            'activo',
+            'categoria',
             'imagen'
         ]
-        # Opcional: Personalizar etiquetas si es necesario
         labels = {
             'nombre': 'Nombre del Producto',
             'descripcion': 'Descripción',
             'precio': 'Precio ($)',
-            'tamano': 'Tamaño',
-            'stock': 'Stock Actual',
-            'imagen': 'Foto del Producto',
+            'inventario': 'Inventario Disponible',
+            'activo': 'Activo',
+            'categoria': 'Categoría',
+            'imagen': 'Imagen del Producto',
         }
 
 class PromocionForm(forms.ModelForm):
@@ -222,7 +222,7 @@ class RespuestaPedidoForm(forms.ModelForm):
 
 
 class SolicitudSimpleForm(forms.Form):
-    """Formulario para capturar cantidad y fecha de entrega para un producto en stock."""
+    """Formulario para capturar cantidad y fecha de entrega para un producto en inventario."""
 
     cantidad = forms.IntegerField(
         label='Cantidad a Solicitar',
@@ -246,3 +246,6 @@ class SolicitudSimpleForm(forms.Form):
             raise ValidationError("La fecha de entrega debe ser al menos 2 días después de hoy para la preparación.")
 
         return fecha
+
+class CartAddProductForm(forms.Form):
+    cantidad = forms.IntegerField(min_value=1, initial=1)

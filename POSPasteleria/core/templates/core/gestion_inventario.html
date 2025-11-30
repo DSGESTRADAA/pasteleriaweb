@@ -28,7 +28,7 @@
                     <th>Imagen</th>
                     <th>Nombre</th>
                     <th>Precio</th>
-                    <th>Stock</th>
+                    <th>inventario</th>
                     <th>Acciones</th>
                 </tr>
             </thead>
@@ -46,8 +46,8 @@
                     <td>{{ producto.nombre }}</td>
                     <td>${{ producto.precio|floatformat:2 }}</td>
                     <td>
-                        <span class="badge bg-{% if producto.stock > 10 %}success{% elif producto.stock > 0 %}warning{% else %}danger{% endif %}">
-                            {{ producto.stock }}
+                        <span class="badge bg-{% if producto.inventario > 10 %}success{% elif producto.inventario > 0 %}warning{% else %}danger{% endif %}">
+                            {{ producto.inventario }}
                         </span>
                     </td>
                     <td>

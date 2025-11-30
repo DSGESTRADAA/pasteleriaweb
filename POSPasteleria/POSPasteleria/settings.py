@@ -63,13 +63,13 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.cart',  # <--- ¡ESTA ES LA LÍNEA NUEVA!
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = 'POSPasteleria.wsgi.application'
-
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -128,3 +128,17 @@ STATIC_ROOT = '/home/mxestrada/pasteleriaweb/static_collected'
 MEDIA_URL = '/media/'
 # Ruta absoluta al directorio 'media' en la raíz de tu proyecto
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# settings.py
+
+# Configuración de Caché (Mensajería temporal)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': os.path.join(BASE_DIR, 'django_cache'), # Carpeta temporal
+        'TIMEOUT': 600, # Los mensajes se borran solos cada 10 minutos (600 seg)
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000
+        }
+    }
+}

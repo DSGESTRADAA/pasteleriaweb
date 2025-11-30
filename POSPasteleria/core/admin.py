@@ -1,5 +1,6 @@
 # core/admin.py
-
+from django.contrib import admin
+from .models import Producto, Pedido, FAQ
 from django.contrib import admin
 from .models import (
     PerfilEmpleado,
@@ -16,6 +17,7 @@ from .models import (
 # -------------------------------------------------------------------------
 admin.site.register(Producto)
 admin.site.register(RespuestaPedido)
+admin.site.register(FAQ)
 
 # Nota: PerfilEmpleado se registra a menudo de forma personalizada
 # para integrarlo mejor con el modelo User, como veremos a continuación.

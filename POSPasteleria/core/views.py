@@ -35,7 +35,7 @@ def dashboard_view(request):
         # Si es un usuario normal (cajero, empleado), lo enviamos al dashboard de usuario (user_dashboard)
         return redirect('user_dashboard')
 
-@admin_required(redirect_url='dashboard')
+@login_required
 def admin_dashboard_view(request):
     """Dashboard completo para Superusuarios/Administradores."""
     context = {

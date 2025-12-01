@@ -117,6 +117,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = '/home/mxestrada/pasteleriaweb/static_collected'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -124,10 +126,17 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/login/'
-STATIC_ROOT = '/home/mxestrada/pasteleriaweb/static_collected'
 MEDIA_URL = '/media/'
 # Ruta absoluta al directorio 'media' en la raíz de tu proyecto
 MEDIA_ROOT = BASE_DIR / 'media'
+if not DEBUG:
+    # Esta ruta ABSOLUTA solo se usa en PythonAnywhere o un servidor web real.
+    STATIC_ROOT = '/home/mxestrada/pasteleriaweb/static_collected'
+else:
+    # En desarrollo (DEBUG=True), podemos usar una ruta local o no definirla.
+    # Es más seguro apuntar a una carpeta dentro de la raíz del proyecto,
+    # aunque en desarrollo runserver sirve los archivos directamente.
+    STATIC_ROOT = BASE_DIR / 'static_collected_local'
 
 # settings.py
 

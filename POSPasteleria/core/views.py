@@ -1,51 +1,25 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.contrib import messages
-from datetime import timedelta
-from django.http import JsonResponse
+
 from .models import Producto, Pedido, DetallePedido, User, Promocion, RespuestaPedido, InteraccionCliente, PerfilEmpleado, FAQ
-from django.utils import timezone # ¡Importar timezone para comparar fechas!
 from .models import Producto, Pedido, DetallePedido, User, Promocion, RespuestaPedido,InteraccionCliente # Asegúrate de importar Promocion
 from .forms import ProductoForm,CustomUserCreationForm, PromocionForm, PedidoForm,RespuestaPedidoForm # ¡Importar PromocionForm!
 from .decorators import admin_required # <-- NUEVA IMPORTACIÓN
 from .models import PerfilEmpleado # Asegúrate de importar tu modelo de perfil
 from django.views.decorators.http import require_http_methods # Útil para la vista POST
 from .forms import SolicitudSimpleForm
-from django.db.models import Count # Importar para contar interacciones
-import math
-from django.http import JsonResponse
-from django.core.cache import cache
-import time
-from django.http import JsonResponse
 from django.core.cache import cache
 import time
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.decorators.http import require_POST
-from django.http import JsonResponse, HttpResponseRedirect
-from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
-from django.contrib import messages
 from django.urls import reverse
 from django.http import HttpResponseRedirect
-import json
-from django.http import JsonResponse
-import json
-from django.http import JsonResponse
 from django.shortcuts import redirect
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.contrib import messages
-from django.utils import timezone
-from datetime import timedelta
 import json
 from datetime import timedelta
 from django.utils import timezone
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
-from django.contrib import messages
 from .cart import Cart
 
 
@@ -61,7 +35,7 @@ def dashboard_view(request):
         # Si es un usuario normal (cajero, empleado), lo enviamos al dashboard de usuario (user_dashboard)
         return redirect('user_dashboard')
 
-@login_required
+@admin_required(redirect_url='dashboard')
 def admin_dashboard_view(request):
     """Dashboard completo para Superusuarios/Administradores."""
     context = {

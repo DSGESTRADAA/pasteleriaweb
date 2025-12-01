@@ -70,8 +70,9 @@
                 <div class="col-md-6 text-end">
                     <h3 class="mb-3">Total a Pagar: <span class="text-success">${{ cart.get_total_price }}</span></h3>
                     
-                    <a href="{% url 'procesar_compra' %}" class="btn btn-success btn-lg shadow-sm" onclick="return confirm('¿Estás seguro de finalizar tu pedido?');">
-                        ✅ Proceder al Pago (Confirmar)
+                    <!-- ✅ CORRECCIÓN: Te manda a la pantalla de selección (Checkout) -->
+                    <a href="{% url 'checkout' %}" class="btn btn-success btn-lg shadow-sm">
+                        ✅ Proceder al Pago
                     </a>
                 </div>
             </div>

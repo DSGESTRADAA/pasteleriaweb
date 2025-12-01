@@ -22,20 +22,32 @@ from django.core.cache import cache
 import time
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from .models import Producto
-from .cart import Cart
-from .forms import CartAddProductForm  # Crearemos esto en el paso 4
 from django.http import JsonResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from .cart import Cart
-from .models import Producto
 from django.urls import reverse
 from django.http import HttpResponseRedirect
+import json
+from django.http import JsonResponse
+import json
+from django.http import JsonResponse
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.contrib import messages
+from django.utils import timezone
+from datetime import timedelta
+import json
+from datetime import timedelta
+from django.utils import timezone
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.contrib import messages
+from .cart import Cart
 
-# Importa otros módulos si es necesario (forms.py)
 
 # La vista de control que actúa como router
 @login_required
@@ -725,43 +737,51 @@ def detalles_carrito(request):
     return render(request, 'core/detalles_carrito.html', {'cart': cart})
 
 
-# core/views.py
-
 @login_required(login_url='login')
 def procesar_compra_view(request):
     cart = Cart(request)
 
-    # Si el carrito está vacío, regresar
     if len(cart) == 0:
-        messages.warning(request, "Tu carrito está vacío.")
-        return redirect('user_dashboard')
+        return JsonResponse({'status': 'error', 'message': 'El carrito está vacío'})
 
     try:
+        # PASO 1: Validar que llegaron datos
+        if not request.body:
+            return JsonResponse({'status': 'error', 'message': 'No se recibieron datos de pago.'})
+
+        # PASO 2: Leer el método de pago
+        data = json.loads(request.body)
+        metodo_pago = data.get('metodo_pago')
+
+        # PASO 3: Definir el estado (ESTO DEBE IR ANTES DE CREAR EL PEDIDO)
+        if metodo_pago == 'paypal':
+            estado_inicial = 'pagado'
+            mensaje = "¡Pago exitoso con PayPal! Tu pedido se está preparando."
+        else:
+            estado_inicial = 'pendiente'
+            mensaje = "¡Reserva exitosa! Recuerda pagar al recoger en tienda."
+
+        # PASO 4: Calcular la fecha de entrega automática (3 días después)
+        fecha_por_defecto = timezone.now().date() + timedelta(days=3)
+
+        # PASO 5: Guardar en Base de Datos
         with transaction.atomic():
-            # 1. Crear el Pedido General
             nuevo_pedido = Pedido.objects.create(
                 usuario=request.user,
-                estado='pendiente',  # O 'confirmado' según tu flujo
+                estado=estado_inicial,  # <--- Ahora sí existe esta variable
                 precio_establecido=cart.get_total_price(),
-                # fecha_entrega... (Podrías pedirla en un formulario previo si es obligatoria)
+                fecha_entrega=fecha_por_defecto  # <--- Y esta también
             )
 
-            # 2. Iterar sobre el carrito para crear detalles y RESTAR INVENTARIO
             for item in cart:
                 producto = item['producto']
                 cantidad = item['cantidad']
                 precio = item['precio']
 
-                # --- VALIDACIÓN FINAL DE SEGURIDAD ---
-                # (Por si alguien compró el último pastel mientras este usuario navegaba)
-                # Recargamos el producto de la BD para ver el stock real actual
                 producto.refresh_from_db()
-
                 if producto.inventario < cantidad:
-                    # Si ya no hay stock, cancelamos todo (rollback)
-                    raise Exception(f"Lo sentimos, el producto '{producto.nombre}' se acaba de agotar.")
+                    raise Exception(f"El producto '{producto.nombre}' se agotó.")
 
-                # Crear Detalle
                 DetallePedido.objects.create(
                     pedido=nuevo_pedido,
                     producto=producto,
@@ -770,19 +790,20 @@ def procesar_compra_view(request):
                     subtotal=precio * cantidad
                 )
 
-                # --- AQUÍ BAJA EL INVENTARIO REALMENTE ---
                 producto.inventario -= cantidad
                 producto.save()
 
-            # 3. Vaciar el carrito de la sesión
             cart.clear()
+            messages.success(request, mensaje)
 
-            # 4. Registrar Interacción (Opcional)
-            # InteraccionCliente.objects.create(...)
-
-            messages.success(request, f"¡Pedido #{nuevo_pedido.id} confirmado con éxito! Gracias por tu compra.")
-            return redirect('cliente_pedidos')
+            return JsonResponse({'status': 'ok'})
 
     except Exception as e:
-        messages.error(request, f"Error al procesar la compra: {str(e)}")
-        return redirect('detalles_carrito')
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
+@login_required(login_url='login')
+def checkout_view(request):
+    cart = Cart(request)
+    if len(cart) == 0:
+        return redirect('user_dashboard')
+    return render(request, 'core/checkout.html', {'cart': cart})

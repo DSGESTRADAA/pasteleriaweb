@@ -40,6 +40,7 @@ urlpatterns = [
     path('cart/remove/<int:producto_id>/', views.cart_remove, name='cart_remove'),
     path('cart/', views.detalles_carrito, name='detalles_carrito'),
     path('procesar-compra/', views.procesar_compra_view, name='procesar_compra'),
+    path('checkout/', views.checkout_view, name='checkout'),
 ]
 
 if settings.DEBUG:
